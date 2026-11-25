@@ -42,7 +42,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: FitStreak-v${{ env.VERSION_NAME }}
+          name: apk
           path: dist/*.apk
 
       - name: GitHub Release erstellen
@@ -68,3 +68,49 @@ jobs:
             curl -s "https://dl.google.com/android/maven2/$a/maven-metadata.xml" | grep -oP '(?<=<version>)[^<]+' | grep -viE 'alpha|beta|rc|dev' | tail -6 | tr '\n' ' '
             echo
           done
+
+  # Installiert die fertige APK auf Emulatoren (Android 8 und aktuell) und prüft:
+  # Start ohne Absturz, Onboarding, Erinnerungen, Zufalls-Eingaben, Neustart.
+  smoke-test:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - api-level: 26
+            target: default
+          - api-level: 35
+            target: google_apis
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: apk
+          path: dist
+
+      - name: KVM aktivieren
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Rauchtest auf dem Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          target: ${{ matrix.target }}
+          arch: x86_64
+          profile: pixel_5
+          disable-animations: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: python3 .github/scripts/smoke_test.py dist/*.apk
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-screenshots-api${{ matrix.api-level }}
+          path: smoke-shots
+          if-no-files-found: ignore

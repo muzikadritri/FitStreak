@@ -196,11 +196,14 @@ fun PlanEditScreen(vm: AppViewModel, templateId: Long, onBack: () -> Unit, onExe
                     Spacer(Modifier.height(8.dp))
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                         ChoiceChip("Anpassen", false, { editRow = row })
-                        ChoiceChip("Alternative", false, { swapRow = row })
+                        ChoiceChip("Alternative vorschlagen", false, { swapRow = row })
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        if (index > 0) ChoiceChip("↑ hoch", false, { vm.moveExercise(row.id, -1) })
+                        if (index < template.exercises.lastIndex) ChoiceChip("↓ runter", false, { vm.moveExercise(row.id, 1) })
                         Spacer(Modifier.weight(1f))
-                        if (index > 0) ChoiceChip("↑", false, { vm.moveExercise(row.id, -1) })
-                        if (index < template.exercises.lastIndex) ChoiceChip("↓", false, { vm.moveExercise(row.id, 1) })
-                        ChoiceChip("✕", false, { vm.removeExercise(row.id) })
+                        ChoiceChip("Entfernen", false, { vm.removeExercise(row.id) })
                     }
                 }
             }
