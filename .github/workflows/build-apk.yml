@@ -1,0 +1,70 @@
+name: Build APK
+
+on:
+  push:
+    branches: ['**']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      VERSION_NAME: 1.0.${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Unit-Tests
+        run: ./gradlew :core:test :app:testReleaseUnitTest --stacktrace
+
+      - name: Signierte Release-APK bauen
+        run: ./gradlew :app:assembleRelease -PversionCode=${{ github.run_number }} --stacktrace
+
+      - name: APK benennen
+        run: |
+          mkdir -p dist
+          cp app/build/outputs/apk/release/app-release.apk "dist/FitStreak-v${VERSION_NAME}.apk"
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FitStreak-v${{ env.VERSION_NAME }}
+          path: dist/*.apk
+
+      - name: GitHub Release erstellen
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          PRERELEASE=""
+          if [ "${GITHUB_REF}" != "refs/heads/main" ]; then PRERELEASE="--prerelease"; fi
+          gh release create "v${VERSION_NAME}" "dist/FitStreak-v${VERSION_NAME}.apk" \
+            --target "${GITHUB_SHA}" \
+            --title "FitStreak v${VERSION_NAME}" \
+            --notes "Automatischer Build von \`${GITHUB_REF_NAME}\` (${GITHUB_SHA::7}).
+
+          **Installation auf dem Handy:** Unten bei „Assets“ die Datei \`FitStreak-v${VERSION_NAME}.apk\` antippen, herunterladen und öffnen. Updates lassen sich einfach über die alte Version installieren – deine Daten bleiben erhalten." \
+            $PRERELEASE
+
+      # Hilft beim Pflegen der Versionen in gradle/libs.versions.toml
+      - name: Verfügbare Bibliotheks-Versionen anzeigen
+        if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[versions]')
+        run: |
+          for a in com/android/tools/build/gradle androidx/compose/compose-bom androidx/activity/activity-compose androidx/core/core-ktx androidx/lifecycle/lifecycle-runtime-compose androidx/navigation/navigation-compose androidx/room/room-runtime androidx/datastore/datastore androidx/glance/glance-appwidget androidx/compose/material/material-icons-core androidx/test/ext/junit androidx/compose/ui/ui androidx/compose/material3/material3; do
+            echo "== $a"
+            curl -s "https://dl.google.com/android/maven2/$a/maven-metadata.xml" | grep -oP '(?<=<version>)[^<]+' | grep -viE 'alpha|beta|rc|dev' | tail -6 | tr '\n' ' '
+            echo
+          done
