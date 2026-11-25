@@ -28,9 +28,14 @@ import org.jetbrains.skia.EncodedImageFormat
 import java.io.File
 
 @OptIn(ExperimentalComposeUiApi::class)
-fun renderPng(file: File, width: Int, height: Int, content: @Composable () -> Unit) {
-    val scene = ImageComposeScene(width = width, height = height, density = Density(1f)) { content() }
-    val img = scene.render()
+fun renderPng(file: File, width: Int, height: Int, density: Float = 1f, frames: Int = 1, content: @Composable () -> Unit) {
+    val scene = ImageComposeScene(width = width, height = height, density = Density(density)) { content() }
+    var img = scene.render(0)
+    // weitere Frames, damit Effekte/Flows/Animationen ankommen (je 100 ms)
+    for (i in 1 until frames) {
+        Thread.sleep(15)
+        img = scene.render(i * 100_000_000L)
+    }
     file.writeBytes(img.encodeToData(EncodedImageFormat.PNG)!!.bytes)
     scene.close()
 }
@@ -43,6 +48,7 @@ private class Entry(val title: String, val anim: ExerciseAnimation, val primary:
 fun main(args: Array<String>) {
     when (args.firstOrNull()) {
         "plan" -> printPlans()
+        "screens" -> screens(File(args.getOrNull(1) ?: "out").apply { mkdirs() }, args.drop(2).toSet())
         else -> sheets(args)
     }
 }

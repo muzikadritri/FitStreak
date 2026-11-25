@@ -12,13 +12,16 @@ val cmp = "1.5.12"
 
 kotlin {
     compilerOptions { jvmTarget.set(JvmTarget.JVM_17) }
+    // Die Fakes der App-Unit-Tests dienen auch der Screen-Vorschau; die Tests selbst laufen hier als :preview:test.
     sourceSets.main {
+        kotlin.srcDir("../../../app/src/test/java/de/leon/fitstreak/testing")
         kotlin.srcDir("../../../app/src/main/java")
         // Android-spezifischer Code wird hier nicht kompiliert (das prüft der CI-Build).
         kotlin.exclude(
             "**/MainActivity.kt",
             "**/FitStreakApp.kt",
             "**/AppContainer.kt",
+            "**/ui/Navigation.kt",
             "**/data/db/AppDatabase.kt",
             "**/data/settings/DataStoreSettingsStore.kt",
             "**/platform/**",
@@ -26,6 +29,10 @@ kotlin {
             "**/widget/**",
         )
     }
+}
+kotlin.sourceSets.test {
+    kotlin.srcDir("../../../app/src/test/java")
+    kotlin.exclude("**/testing/**")
 }
 java {
     sourceCompatibility = JavaVersion.VERSION_17
@@ -41,6 +48,13 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:${libs.versions.coroutines.get()}")
 }
+
+dependencies {
+    testImplementation(libs.junit)
+    testImplementation(libs.kotlinx.coroutines.test)
+}
+
+tasks.test { useJUnit() }
 
 application {
     mainClass.set("preview.MainKt")

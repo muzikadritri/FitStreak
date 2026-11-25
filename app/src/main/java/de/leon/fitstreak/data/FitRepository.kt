@@ -257,7 +257,20 @@ class FitRepository(
     // ------------------------------------------------------------------ Streak
 
     /** Schreibt vergangene Tage fest und speichert den Streak-Stand. */
-    suspend fun refreshStreak(): StreakUpdate = mutex.withLock { refreshStreakLocked() }
+    suspend fun refreshStreak(): StreakUpdate = mutex.withLock {
+        finishStaleSessionsLocked()
+        refreshStreakLocked()
+    }
+
+    /**
+     * Ein an einem früheren Tag begonnenes, nie beendetes Training wird nachträglich abgeschlossen
+     * (wenn Sätze eingetragen wurden) – so geht kein Training und keine Streak verloren.
+     */
+    private suspend fun finishStaleSessionsLocked() {
+        val today = today().toEpochDay()
+        val stale = snapshot().sessions.filter { it.finishedAt == null && it.epochDay < today }
+        for (s in stale) finishSessionLocked(s.id)
+    }
 
     private suspend fun refreshStreakLocked(): StreakUpdate {
         val data = snapshot()
@@ -286,8 +299,8 @@ class FitRepository(
         val data = snapshot()
         val today = today().toEpochDay()
         data.sessions.firstOrNull { it.templateId == templateId && it.finishedAt == null && it.epochDay == today }?.let { return it.id }
-        // alte, nie beendete Sessions aufräumen
-        data.sessions.filter { it.finishedAt == null }.forEach { discardSession(it.id) }
+        // andere offene Sessions abschließen (bzw. verwerfen, wenn leer)
+        mutex.withLock { data.sessions.filter { it.finishedAt == null }.forEach { finishSessionLocked(it.id) } }
         val t = data.template(templateId)
         return dao.insertSession(SessionEntity(epochDay = today, templateId = templateId, templateName = t?.template?.name ?: "Training", startedAt = now()))
     }
@@ -330,13 +343,15 @@ class FitRepository(
      * Schließt das Training ab: Volumen, Rekorde, Progression für das nächste Mal, XP, Streak, Erfolge.
      * Gibt null zurück, wenn kein einziger Satz eingetragen wurde (Session wird dann verworfen).
      */
-    suspend fun finishSession(sessionId: Long): WorkoutSummary? = mutex.withLock {
+    suspend fun finishSession(sessionId: Long): WorkoutSummary? = mutex.withLock { finishSessionLocked(sessionId) }
+
+    private suspend fun finishSessionLocked(sessionId: Long): WorkoutSummary? {
         val data = snapshot()
-        val session = data.sessions.firstOrNull { it.id == sessionId } ?: return@withLock null
+        val session = data.sessions.firstOrNull { it.id == sessionId } ?: return null
         val logs = data.setLogs.filter { it.sessionId == sessionId }
         if (logs.isEmpty()) {
             discardSession(sessionId)
-            return@withLock null
+            return null
         }
         val today = LocalDate.ofEpochDay(session.epochDay)
         val byExercise = logs.groupBy { it.exerciseId }.mapValues { (_, l) -> l.sortedBy { it.setIndex } }
@@ -390,7 +405,8 @@ class FitRepository(
 
         // Session abschließen, dann Streak neu auswerten
         val streakBefore = data.streak(today()).display
-        val finishedAt = now()
+        // liegengebliebene Sessions enden mit ihrem letzten Satz, nicht mit "jetzt"
+        val finishedAt = if (session.epochDay < today().toEpochDay()) logs.maxOf { it.doneAt } else now()
         dao.updateSession(session.copy(finishedAt = finishedAt, volumeKg = volume, prCount = records.size, setCount = logs.size))
         val streak = refreshStreakLocked()
         val streakAfter = streak.display
@@ -404,7 +420,7 @@ class FitRepository(
         val newAchievements = unlockAchievements()
         hooks.dataChanged()
 
-        WorkoutSummary(
+        return WorkoutSummary(
             templateName = session.templateName,
             durationMin = max(1, ((finishedAt - session.startedAt) / 60_000).toInt()),
             setCount = logs.size,

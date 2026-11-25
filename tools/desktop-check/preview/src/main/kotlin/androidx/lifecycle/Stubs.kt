@@ -7,7 +7,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 
 abstract class ViewModel {
-    internal val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+    internal val scope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.Unconfined)
     protected open fun onCleared() {}
     fun clear() {
         scope.cancel()

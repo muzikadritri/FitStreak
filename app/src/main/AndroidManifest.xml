@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Bewusst keine INTERNET-Berechtigung: Die App arbeitet komplett offline. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:name=".FitStreakApp"
@@ -8,7 +14,8 @@
         android:roundIcon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.FitStreak">
+        android:theme="@style/Theme.FitStreak"
+        tools:targetApi="36">
 
         <activity
             android:name=".MainActivity"
@@ -20,6 +27,36 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Erinnerungen: wird nur per explizitem PendingIntent aus der App ausgelöst -->
+        <receiver
+            android:name=".notify.ReminderReceiver"
+            android:exported="false" />
+
+        <!-- Erinnerungen nach Neustart, App-Update und Zeit-/Zeitzonenwechsel neu planen -->
+        <receiver
+            android:name=".notify.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name=".widget.StreakWidgetReceiver"
+            android:exported="true"
+            android:label="@string/widget_name">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/streak_widget_info" />
+        </receiver>
     </application>
 
 </manifest>

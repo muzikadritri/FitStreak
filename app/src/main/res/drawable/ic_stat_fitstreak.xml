@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Status-Icon für Benachrichtigungen (einfarbig): Kurzhantel -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path android:fillColor="#FFFFFFFF" android:pathData="M7,11h10v2h-10z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M5.2,6h1.6a0.8,0.8 0,0 1,0.8 0.8v10.4a0.8,0.8 0,0 1,-0.8 0.8h-1.6a0.8,0.8 0,0 1,-0.8 -0.8v-10.4a0.8,0.8 0,0 1,0.8 -0.8z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M17.2,6h1.6a0.8,0.8 0,0 1,0.8 0.8v10.4a0.8,0.8 0,0 1,-0.8 0.8h-1.6a0.8,0.8 0,0 1,-0.8 -0.8v-10.4a0.8,0.8 0,0 1,0.8 -0.8z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M2.2,8.5h1a0.7,0.7 0,0 1,0.7 0.7v5.6a0.7,0.7 0,0 1,-0.7 0.7h-1a0.7,0.7 0,0 1,-0.7 -0.7v-5.6a0.7,0.7 0,0 1,0.7 -0.7z" />
+    <path android:fillColor="#FFFFFFFF" android:pathData="M20.8,8.5h1a0.7,0.7 0,0 1,0.7 0.7v5.6a0.7,0.7 0,0 1,-0.7 0.7h-1a0.7,0.7 0,0 1,-0.7 -0.7v-5.6a0.7,0.7 0,0 1,0.7 -0.7z" />
+</vector>
