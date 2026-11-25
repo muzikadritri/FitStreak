@@ -41,6 +41,28 @@ private class Entry(val title: String, val anim: ExerciseAnimation, val primary:
  * sheet <outDir> [id …]  – Kontaktbögen der Übungsanimationen (Keyframes + Zwischenbilder).
  */
 fun main(args: Array<String>) {
+    when (args.firstOrNull()) {
+        "plan" -> printPlans()
+        else -> sheets(args)
+    }
+}
+
+private fun printPlans() {
+    val base = de.leon.fitstreak.core.model.UserProfile(
+        goals = setOf(de.leon.fitstreak.core.model.Goal.SIXPACK, de.leon.fitstreak.core.model.Goal.OBERKOERPER),
+        equipment = setOf(de.leon.fitstreak.core.model.Equipment.KURZHANTEL),
+        dumbbellKg = listOf(12.0), daysPerWeek = 4, maxPushups = 10, maxPlankSec = 60, maxSquats = 20,
+    )
+    for (p in listOf(base, base.copy(daysPerWeek = 3), base.copy(daysPerWeek = 5, equipment = emptySet(), dumbbellKg = emptyList()))) {
+        println("=== ${p.daysPerWeek} Tage, ${p.equipment}")
+        for (w in de.leon.fitstreak.core.plan.PlanGenerator.generate(p)) {
+            println("${w.name} (${w.focus}) ~${de.leon.fitstreak.core.plan.PlanGenerator.estimateMinutes(w.exercises)} min")
+            for (e in w.exercises) println("   ${ExerciseLibrary.require(e.exerciseId).name}: ${e.sets} x ${e.repMin}-${e.repMax} @ ${e.weightKg} kg, Pause ${e.restSec}")
+        }
+    }
+}
+
+private fun sheets(args: Array<String>) {
     val out = File(args.getOrNull(1) ?: "out").apply { mkdirs() }
     val ids = args.drop(2).toSet()
     val entries = ExerciseLibrary.all.map { Entry("${it.id} · ${it.name}", it.animation, it.primaryParts, it.secondaryParts) } +

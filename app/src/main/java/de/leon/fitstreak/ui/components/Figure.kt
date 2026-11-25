@@ -390,8 +390,12 @@ fun DrawScope.drawExercise(
                 drawCircle(it, 0.075f * scale, p(y + across * 0.45f))
                 drawCircle(it, 0.075f * scale, p(y - across * 0.45f))
             }
+            // Rücken ist von vorn nicht zu sehen – als seitliche Streifen (Lat) andeuten
             partColor(BodyPart.UPPER_BACK)?.let {
-                drawLine(it.copy(alpha = 0.75f), p(lerp(hip, sh, 0.45f)), p(lerp(hip, sh, 0.85f)), 0.2f * scale, StrokeCap.Round)
+                val across = (sk.shoulderN - sk.shoulderF) * 0.5f
+                for (s in listOf(-1f, 1f)) {
+                    drawLine(it, p(lerp(hip, sh, 0.5f) + across * (s * 0.72f)), p(lerp(hip, sh, 0.82f) + across * (s * 0.9f)), 0.05f * scale, StrokeCap.Round)
+                }
             }
             partColor(BodyPart.ABS)?.let {
                 drawLine(it, p(lerp(hip, sh, 0.12f)), p(lerp(hip, sh, 0.55f)), 0.11f * scale, StrokeCap.Round)

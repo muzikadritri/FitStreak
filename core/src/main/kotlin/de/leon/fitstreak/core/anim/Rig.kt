@@ -122,7 +122,8 @@ private fun solveLimb(
         val target = Vec(limb.x, limb.y)
         val dv = target - root
         val dist = dv.length
-        val d = dist.coerceIn(abs(l1 - l2) + 1e-3f, l1 + l2 - 1e-3f)
+        // obere Grenze ohne Epsilon: voll gestreckte Gliedmaßen bleiben exakt gerade
+        val d = dist.coerceIn(abs(l1 - l2) + 1e-3f, l1 + l2)
         val ux = if (dist < 1e-5f) 0f else dv.x / dist
         val uy = if (dist < 1e-5f) -1f else dv.y / dist
         val cosA = ((l1 * l1 + d * d - l2 * l2) / (2 * l1 * d)).coerceIn(-1f, 1f)
