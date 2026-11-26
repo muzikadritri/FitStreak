@@ -9,6 +9,9 @@ enum class Haptic { TICK, SUCCESS, ALERT }
 
 enum class Sound { TICK, GO, DONE }
 
+/** Bilder der 3D-Figur (freigestellt, für helles und dunkles Design). */
+enum class Art { WELCOME, REST, TIPS, EMPTY }
+
 /**
  * Alles, was die Oberfläche vom Android-System braucht. Die Implementierung liegt in `platform/`,
  * so bleiben die Screens reines Compose.
@@ -51,6 +54,10 @@ interface Platform {
      */
     @Composable
     fun Figure3D(exercise: Exercise, time: () -> Float, modifier: Modifier) {}
+
+    /** Zeigt eines der mitgelieferten Bilder. Ohne Plattform bleibt der Platz leer. */
+    @Composable
+    fun ArtImage(art: Art, modifier: Modifier) {}
 
     /** Öffnet den „Speichern unter“-Dialog und schreibt den von [content] gelieferten Text. */
     @Composable

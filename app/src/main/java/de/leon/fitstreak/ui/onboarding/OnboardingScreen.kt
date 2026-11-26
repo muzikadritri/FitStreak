@@ -1,6 +1,7 @@
 package de.leon.fitstreak.ui.onboarding
 
 import androidx.compose.animation.AnimatedContent
+import de.leon.fitstreak.ui.Art
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -198,12 +199,10 @@ fun OnboardingScreen(onFinish: (OnboardingInput) -> Unit) {
             Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp)) {
                 when (s) {
                     0 -> {
-                        Spacer(Modifier.height(32.dp))
-                        Box(
-                            Modifier.size(72.dp).clip(MaterialTheme.shapes.large).background(fit.accent),
-                            contentAlignment = Alignment.Center,
-                        ) { FitIconView(FitIcon.DUMBBELL, tint = fit.onAccent, size = 40.dp) }
-                        Spacer(Modifier.height(24.dp))
+                        Spacer(Modifier.height(16.dp))
+                        // Die Figur aus den Übungen begrüßt gleich hier
+                        LocalPlatform.current.ArtImage(Art.WELCOME, Modifier.fillMaxWidth().height(168.dp))
+                        Spacer(Modifier.height(20.dp))
                         Text("Willkommen bei FitStreak", style = MaterialTheme.typography.headlineMedium)
                         Spacer(Modifier.height(8.dp))
                         Text(

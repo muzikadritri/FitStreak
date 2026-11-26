@@ -1,6 +1,8 @@
 package de.leon.fitstreak.ui.tips
 
 import androidx.compose.foundation.background
+import de.leon.fitstreak.ui.LocalPlatform
+import de.leon.fitstreak.ui.Art
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -77,6 +79,16 @@ fun TipsScreen(onBack: () -> Unit) {
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
+            item {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Kurz erklärt, was beim Muskelaufbau wirklich zählt",
+                        style = MaterialTheme.typography.bodyLarge, color = fit.textSecondary, modifier = Modifier.weight(1f),
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    LocalPlatform.current.ArtImage(Art.TIPS, Modifier.width(96.dp).height(132.dp))
+                }
+            }
             items(tips) { tip -> TipCard(tip) }
         }
     }

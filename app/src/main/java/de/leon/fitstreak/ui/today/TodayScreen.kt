@@ -1,6 +1,7 @@
 package de.leon.fitstreak.ui.today
 
 import androidx.compose.animation.animateColorAsState
+import de.leon.fitstreak.ui.Art
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -276,6 +277,10 @@ private fun RestDayCard(data: AppData, today: LocalDate, trainedToday: Boolean, 
         }
         Spacer(Modifier.height(8.dp))
         Text(recoveryTips[(today.dayOfYear) % recoveryTips.size], style = MaterialTheme.typography.bodyLarge, color = fit.textSecondary)
+        if (!trainedToday) {
+            Spacer(Modifier.height(8.dp))
+            LocalPlatform.current.ArtImage(Art.REST, Modifier.fillMaxWidth().height(104.dp))
+        }
         Spacer(Modifier.height(12.dp))
         ThinDivider()
         Spacer(Modifier.height(12.dp))

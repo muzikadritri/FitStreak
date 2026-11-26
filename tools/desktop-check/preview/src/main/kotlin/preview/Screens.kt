@@ -4,7 +4,15 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.loadImageBitmap
+import de.leon.fitstreak.ui.Art
+import de.leon.fitstreak.ui.LocalPlatform
+import de.leon.fitstreak.ui.Platform
 import androidx.compose.ui.Modifier
 import de.leon.fitstreak.testing.World
 import de.leon.fitstreak.ui.AppViewModel
@@ -18,11 +26,24 @@ import java.io.File
 private const val W = 412
 private const val H = 915
 
+/** Plattform für die Vorschau: lädt die Bilder direkt aus dem res-Ordner der App. */
+private object PreviewPlatform : Platform {
+    @Composable
+    override fun ArtImage(art: Art, modifier: Modifier) {
+        val bitmap = remember(art) {
+            File("../../../app/src/main/res/drawable-nodpi/art_${art.name.lowercase()}.webp").inputStream().use { loadImageBitmap(it) }
+        }
+        Image(bitmap, contentDescription = null, modifier = modifier, contentScale = ContentScale.Fit)
+    }
+}
+
 private fun shot(out: File, name: String, dark: Boolean = false, height: Int = H, frames: Int = 6, content: @Composable () -> Unit) {
     val file = File(out, "$name.png")
     renderPng(file, (W * 1.5f).toInt(), (height * 1.5f).toInt(), density = 1.5f, frames = frames) {
         FitTheme(dark = dark) {
-            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) { content() }
+            CompositionLocalProvider(LocalPlatform provides PreviewPlatform) {
+                Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) { content() }
+            }
         }
     }
     println("geschrieben: $file")
@@ -48,6 +69,17 @@ fun screens(out: File, only: Set<String>) = runBlocking {
     if (want("planedit")) shot(out, "planedit", height = 1500) { de.leon.fitstreak.ui.plan.PlanEditScreen(vm, vm.data.value.rotation.first().id, {}, {}) }
     if (want("tips")) shot(out, "tips", height = 1400) { de.leon.fitstreak.ui.tips.TipsScreen {} }
     if (want("onboarding")) shot(out, "onboarding") { de.leon.fitstreak.ui.onboarding.OnboardingScreen {} }
+    if (want("onboarding_dark")) shot(out, "onboarding_dark", dark = true) { de.leon.fitstreak.ui.onboarding.OnboardingScreen {} }
+    if (want("rest")) {
+        // frischer Stand ohne Trainings: Ruhetag-Karte und leere Diagramme
+        val fresh = World()
+        fresh.onboard()
+        fresh.advanceDays(2) // Mittwoch = Ruhetag im Testplan
+        val restVm = AppViewModel(fresh.repo)
+        restVm.refresh()
+        shot(out, "today_rest", height = 1100) { TodayScreen(restVm, {}, {}, {}) }
+        shot(out, "progress_empty", dark = true, height = 1600) { de.leon.fitstreak.ui.progress.ProgressScreen(restVm) {} }
+    }
 
     if (want("workout")) {
         val w = world.repo.snapshot().rotation.first()

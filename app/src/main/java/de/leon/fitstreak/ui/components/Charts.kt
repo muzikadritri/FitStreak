@@ -1,6 +1,10 @@
 package de.leon.fitstreak.ui.components
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Spacer
+import de.leon.fitstreak.ui.LocalPlatform
+import de.leon.fitstreak.ui.Art
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -107,7 +111,12 @@ fun LineChart(
     valueLabel: (Float) -> String = ::defaultLabel,
 ) {
     if (values.isEmpty()) {
-        Box(modifier.fillMaxWidth().height(height), contentAlignment = Alignment.Center) {
+        Column(
+            modifier.fillMaxWidth().height(height),
+            horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center,
+        ) {
+            LocalPlatform.current.ArtImage(Art.EMPTY, Modifier.size(88.dp))
+            Spacer(Modifier.height(4.dp))
             Text("Noch keine Daten", color = fit.muted, style = MaterialTheme.typography.bodyMedium)
         }
         return

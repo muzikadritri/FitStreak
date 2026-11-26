@@ -24,14 +24,19 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.foundation.Image
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalView
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import de.leon.fitstreak.AppContainer
 import de.leon.fitstreak.BuildConfig
+import de.leon.fitstreak.R
 import de.leon.fitstreak.core.model.Exercise
 import de.leon.fitstreak.notify.Notifications
+import de.leon.fitstreak.ui.Art
 import de.leon.fitstreak.ui.Haptic
 import de.leon.fitstreak.ui.Platform
 import de.leon.fitstreak.ui.Sound
@@ -173,6 +178,17 @@ class AndroidPlatform(private val context: Context, container: AppContainer) : P
     @Composable
     override fun Figure3D(exercise: Exercise, time: () -> Float, modifier: Modifier) {
         Figure3DView(exercise, time, modifier, figure3dGuard, onFailed = { figure3dBroken.value = true })
+    }
+
+    @Composable
+    override fun ArtImage(art: Art, modifier: Modifier) {
+        val id = when (art) {
+            Art.WELCOME -> R.drawable.art_welcome
+            Art.REST -> R.drawable.art_rest
+            Art.TIPS -> R.drawable.art_tips
+            Art.EMPTY -> R.drawable.art_empty
+        }
+        Image(painterResource(id), contentDescription = null, modifier = modifier, contentScale = ContentScale.Fit)
     }
 
     @Composable
