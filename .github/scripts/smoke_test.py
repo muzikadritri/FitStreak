@@ -137,8 +137,11 @@ def main():
     sdk = int(shell("getprop ro.build.version.sdk").strip())
     log(f"Android API {sdk}")
 
+    # „App reagiert nicht“-Dialoge des Systems (z. B. vom Launcher auf langsamen CI-Emulatoren)
+    # unterdrücken – Abstürze von FitStreak erkennt der Test über Logcat und den Prozess.
+    shell("settings put global hide_error_dialogs 1", check=False)
     # dem Emulator nach dem Hochfahren etwas Ruhe gönnen (Launcher, Google-Dienste)
-    time.sleep(25 if sdk >= 30 else 5)
+    time.sleep(40 if sdk >= 30 else 5)
     adb("install", "-r", apk, timeout=300)
     if sdk >= 33:
         shell(f"pm grant {PKG} android.permission.POST_NOTIFICATIONS", check=False)
