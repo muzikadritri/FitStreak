@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
@@ -100,7 +101,7 @@ fun ProgressScreen(vm: AppViewModel, onExercise: (String) -> Unit) {
             onDismissRequest = { showTest = false },
             title = { Text("Monatstest") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Jeweils so viele saubere Wiederholungen wie möglich – mit Pause zwischen den Übungen.")
                     NumberField(pushups, { pushups = it }, "Liegestütze (max.)", Modifier.fillMaxWidth())
                     NumberField(plank, { plank = it }, "Plank (Sekunden)", Modifier.fillMaxWidth())
@@ -127,7 +128,7 @@ fun ProgressScreen(vm: AppViewModel, onExercise: (String) -> Unit) {
             onDismissRequest = { showMeasure = false },
             title = { Text("Körpermaße eintragen") },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text("Am besten morgens und immer an derselben Stelle messen. Leere Felder werden übersprungen.")
                     NumberField(arm, { arm = it }, "Oberarm (angespannt)", Modifier.fillMaxWidth(), suffix = "cm", decimal = true)
                     NumberField(chest, { chest = it }, "Brust", Modifier.fillMaxWidth(), suffix = "cm", decimal = true)

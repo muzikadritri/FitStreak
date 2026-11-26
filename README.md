@@ -56,7 +56,7 @@ Jeder Push baut über GitHub Actions (`.github/workflows/build-apk.yml`) automat
 1. Unit-Tests (`:core:test`, `:app:testReleaseUnitTest`)
 2. signierte Release-APK (`versionCode` = Run-Nummer)
 3. GitHub Release `v1.0.<Run-Nummer>` mit der APK (außerhalb von `main` als Pre-Release)
-4. Rauchtest auf Emulatoren (Android 8 und aktuell): Installation, Start, Onboarding,
+4. Rauchtest auf Emulatoren (Android 8 und Android 15): Installation, Start, Onboarding,
    Erinnerungen, Zufalls-Eingaben, Neustart
 
 Lokal (mit Android SDK):

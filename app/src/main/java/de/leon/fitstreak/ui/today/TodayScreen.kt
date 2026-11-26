@@ -57,7 +57,7 @@ import de.leon.fitstreak.ui.components.Pill
 import de.leon.fitstreak.ui.components.PrimaryButton
 import de.leon.fitstreak.ui.components.ProgressBar
 import de.leon.fitstreak.ui.components.RoundIconButton
-import de.leon.fitstreak.ui.components.StaticExerciseFigure
+import de.leon.fitstreak.ui.components.MiniExerciseFigure
 import de.leon.fitstreak.ui.components.WindowInsetsCompat
 import de.leon.fitstreak.ui.theme.Brand
 import de.leon.fitstreak.ui.theme.fit
@@ -253,7 +253,7 @@ private fun WorkoutCard(
             for (row in workout.exercises) {
                 val e = row.exercise ?: continue
                 Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onExercise(e.id) }, verticalAlignment = Alignment.CenterVertically) {
-                    FigureBox(Modifier.size(48.dp)) { StaticExerciseFigure(e, e.animation.cycleSeconds * 0.3f, Modifier.fillMaxSize().padding(3.dp)) }
+                    FigureBox(Modifier.size(52.dp)) { MiniExerciseFigure(e, Modifier.fillMaxSize().padding(3.dp)) }
                     Spacer(Modifier.width(12.dp))
                     Column(Modifier.weight(1f)) {
                         Text(e.name, style = MaterialTheme.typography.titleSmall)

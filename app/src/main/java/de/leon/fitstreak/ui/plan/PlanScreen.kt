@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -269,7 +271,7 @@ private fun PrescriptionDialog(row: TemplateExerciseEntity, onDismiss: () -> Uni
         onDismissRequest = onDismiss,
         title = { Text(e.name) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp), horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState())) {
                 Stepper(draft.sets.toString(), "Sätze", { draft = draft.copy(sets = draft.sets - 1) }, { draft = draft.copy(sets = draft.sets + 1) }, minusEnabled = draft.sets > 1, plusEnabled = draft.sets < 6)
                 if (e.isTimed) {
                     Stepper(draft.repMin.toString(), "Sekunden (Ziel)", { draft = draft.copy(repMin = draft.repMin - step) }, { draft = draft.copy(repMin = draft.repMin + step, repMax = maxOf(draft.repMax, draft.repMin + step)) }, minusEnabled = draft.repMin > 5)
