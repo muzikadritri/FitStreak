@@ -171,6 +171,10 @@ Die große Figur (Übungsdetail, Aufwärmen) ist ein echtes 3D-Modell, gerendert
   (Ellbogen/Knie), damit sich nichts verdreht. Dazu kommt, was eine Strichfigur nicht braucht:
   Hände liegen flach auf Boden/Stuhl, Finger schließen sich um Hantel, Stange und Band, eine
   Hantel für beide Hände führt die Hände zusammen, die Füße stehen nebeneinander.
+- **Tiefe:** Was aus der Bildebene herausführt, steht als `Depth` an der Pose (Oberkörper-Drehung,
+  Arm seitlich schwenken) – die 2D-Figur ignoriert es. Wo die Zeichnung bewusst vereinfacht
+  (nur ein Arm bewegt sich, damit man ihn von der Seite sieht), trägt die Animation eine eigene
+  3D-Fassung (`ExerciseAnimation.threeD`) mit denselben Phasen.
 - **Modell:** `assets/figure3d/figure.glb` ist das Mixamo-Mannequin „X Bot“. `tools/model/build_figure.py`
   entfernt die Clips und trennt die Oberfläche in Materialien je Muskelregion (`s_CHEST`, `s_QUADS` …),
   die zur Laufzeit eingefärbt werden: Zielmuskel rot, Hilfsmuskel gelb. Requisiten sind skalierte
