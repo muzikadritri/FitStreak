@@ -66,6 +66,30 @@ data class Fk(val upper: Float, val lower: Float) : Limb
  */
 data class Ik(val x: Float, val y: Float, val flip: Boolean = false) : Limb
 
+/**
+ * Angaben nur für die 3D-Figur – alles, was aus der Bildebene herausführt und die flache
+ * Zeichnung deshalb nicht zeigen kann. Die 2D-Figur ignoriert sie.
+ */
+data class Depth(
+    /** Oberkörper dreht sich um die Wirbelsäule (Grad, positiv = zur linken Körperseite). */
+    val twist: Float = 0f,
+    /** Arm schwenkt um die Körper-Längsachse nach außen (Grad): aus „vor/hinter dem Körper“ wird „seitlich“. */
+    val swingN: Float = 0f,
+    val swingF: Float = 0f,
+    /** Arm schwenkt um die Brust-Achse nach außen (Grad): aus „Richtung Kopf“ wird „seitlich“. */
+    val turnN: Float = 0f,
+    val turnF: Float = 0f,
+) {
+    companion object {
+        val NONE = Depth()
+    }
+}
+
+fun lerp(a: Depth, b: Depth, f: Float): Depth = if (a == b) a else Depth(
+    lerp(a.twist, b.twist, f), lerp(a.swingN, b.swingN, f), lerp(a.swingF, b.swingF, f),
+    lerp(a.turnN, b.turnN, f), lerp(a.turnF, b.turnF, f),
+)
+
 data class Pose(
     val hipX: Float,
     val hipY: Float,
@@ -80,6 +104,7 @@ data class Pose(
     /** Richtung Knöchel → Zehen. 90° = flach nach vorn. */
     val footN: Float = 90f,
     val footF: Float = footN,
+    val depth: Depth = Depth.NONE,
 )
 
 class Skeleton(
@@ -229,5 +254,6 @@ fun interpolate(a: Pose, b: Pose, f: Float, view: View, pivot: Vec? = null): Pos
             { toFk(sa.hipF, sa.kneeF, sa.ankleF, front) }, { toFk(sb.hipF, sb.kneeF, sb.ankleF, front) }),
         footN = lerp(a.footN, b.footN, f),
         footF = lerp(a.footF, b.footF, f),
+        depth = lerp(a.depth, b.depth, f),
     )
 }

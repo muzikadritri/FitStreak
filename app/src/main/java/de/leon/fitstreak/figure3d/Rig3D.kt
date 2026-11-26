@@ -3,6 +3,7 @@ package de.leon.fitstreak.figure3d
 import de.leon.fitstreak.core.anim.Anchor
 import de.leon.fitstreak.core.anim.Band
 import de.leon.fitstreak.core.anim.Body
+import de.leon.fitstreak.core.anim.Depth
 import de.leon.fitstreak.core.anim.Box
 import de.leon.fitstreak.core.anim.BoxStyle
 import de.leon.fitstreak.core.anim.Dumbbell
@@ -12,6 +13,7 @@ import de.leon.fitstreak.core.anim.Fixed
 import de.leon.fitstreak.core.anim.Hands
 import de.leon.fitstreak.core.anim.JointRef
 import de.leon.fitstreak.core.anim.OnJoint
+import de.leon.fitstreak.core.anim.Pose
 import de.leon.fitstreak.core.anim.PullBar
 import de.leon.fitstreak.core.anim.Skeleton
 import de.leon.fitstreak.core.anim.Vec
@@ -30,6 +32,9 @@ class Solved(
     /** Griffmitte der Hände (nah, fern) – dort sitzen Hanteln, Stange und Band. */
     val gripNear: V3,
     val gripFar: V3,
+    /** Achse quer durch die Faust (nah, fern) – so liegt eine Hantel in der Hand. */
+    val barNear: V3,
+    val barFar: V3,
 )
 
 enum class Prop3Kind { BOX, CYLINDER }
@@ -105,6 +110,10 @@ class Rig3D(private val skeleton: FigureSkeleton) {
         val armsTogether: Boolean,
         /** Eine Hantel wird mit beiden Händen gehalten (Goblet Squat, Trizeps über Kopf). */
         val sharedDumbbell: Boolean,
+        /** Hände treffen sich vor dem Körper (gemeinsame Hantel oder Drehung mit gefalteten Händen). */
+        val handsTogether: Boolean,
+        /** An der Klimmzugstange hängt der Körper etwas hinter der Stange. */
+        val bar: Boolean,
         val gripNear: Boolean,
         val gripFar: Boolean,
         /** Auflageflächen: Boden und Oberseiten von Stuhl/Bank (x-Bereich, Höhe im 2D-Rig). */
@@ -128,7 +137,8 @@ class Rig3D(private val skeleton: FigureSkeleton) {
         val far = bar || dumbbells.any { it.hands != Hands.NEAR } || JointRef.HAND_F in bands || (together && near)
         val surfaces = listOf(Triple(-100f, 100f, 0f)) +
             anim.props.filterIsInstance<Box>().map { Triple(it.x - 0.06f, it.x + it.w + 0.06f, it.h) }
-        return Info(anim, together, shared, near, far, surfaces).also { cached = it }
+        val twisting = anim.poses.any { it.depth.twist != 0f }
+        return Info(anim, together, shared, shared || (together && twisting), bar, near, far, surfaces).also { cached = it }
     }
 
     /** Zwei-Knochen-IK: Gelenkposition zwischen [root] und [target], geknickt in Richtung [pole]. */
@@ -147,11 +157,16 @@ class Rig3D(private val skeleton: FigureSkeleton) {
         return t * t * (3f - 2f * t)
     }
 
-    fun solve(anim: ExerciseAnimation, time: Float): Solved = solve(anim, anim.frameAt(time).pose.resolve(anim.view))
+    fun solve(animation: ExerciseAnimation, time: Float): Solved {
+        val anim = animation.forThreeD
+        return solve(anim, anim.frameAt(time).pose)
+    }
 
-    fun solve(anim: ExerciseAnimation, sk: Skeleton): Solved {
+    private fun solve(anim: ExerciseAnimation, pose: Pose): Solved {
         val info = info(anim)
         val view = anim.view
+        val sk: Skeleton = pose.resolve(view)
+        val depth: Depth = pose.depth
         val n = skeleton.nodes.size
         val world = arrayOfNulls<FloatArray>(n)
         val localOverride = arrayOfNulls<FloatArray>(n)
@@ -164,13 +179,21 @@ class Rig3D(private val skeleton: FigureSkeleton) {
         val forward = left cross up
         val torsoRot = M3(left, up, forward)
 
-        fun placed(index: Int) = hipMid + torsoRot * ((restPos(index) - hipOrigin) * torsoScale)
+        // Drehung um die Wirbelsäule: Becken bleibt, nach oben hin dreht der Rumpf immer weiter mit
+        fun twisted(weight: Float): M3 = if (depth.twist == 0f) torsoRot else M3.rotation(up, depth.twist * weight) * torsoRot
+        val chest = twisted(1f)
+        val chestLeft = chest.cx
+        val chestForward = chest.cz
+        fun placed(index: Int, weight: Float = 1f) = hipMid + twisted(weight) * ((restPos(index) - hipOrigin) * torsoScale)
 
-        for (j in torso) world[j] = Mat4.compose(torsoRot * restLin(j), placed(j))
+        for ((k, j) in torso.withIndex()) {
+            val weight = TWIST_WEIGHT[k]
+            world[j] = Mat4.compose(twisted(weight) * restLin(j), placed(j, weight))
+        }
 
         // Kopf: eigene Richtung (Blick folgt dem 2D-Rig)
         val headDir = vector(sk.shoulder, sk.head, view).normalized(up)
-        val headLeft = left.rejectFrom(headDir).normalized(left)
+        val headLeft = chestLeft.rejectFrom(headDir).normalized(left)
         world[head] = Mat4.compose(M3(headLeft, headDir, headLeft cross headDir) * restLin(head), placed(head))
 
         fun hingeBlend(computed: V3, fallback: V3): V3 {
@@ -190,17 +213,30 @@ class Rig3D(private val skeleton: FigureSkeleton) {
             return best
         }
 
-        fun solveArm(arm: Arm, s: Vec, e: Vec, h: Vec, grip: Boolean): V3 {
+        fun solveArm(arm: Arm, s: Vec, e: Vec, h: Vec, grip: Boolean, swing: Float, turn: Float): Pair<V3, V3> {
             val root = placed(arm.root)
             val l1 = (e - s).length
             val l2 = (h - e).length
-            var pElbow = root + vector(s, e, view)
-            var pHand = pElbow + vector(e, h, view)
+            // +1 = linker Arm: „nach außen“ heißt für ihn nach links
+            val outward = if (arm === armL) 1f else -1f
+            fun aim(v: V3): V3 {
+                var r = v
+                if (swing != 0f) r = M3.rotation(up, -swing * outward) * r
+                if (turn != 0f) r = M3.rotation(forward, -turn * outward) * r
+                return if (depth.twist == 0f) r else M3.rotation(up, depth.twist) * r
+            }
+            var pElbow = root + aim(vector(s, e, view))
+            var pHand = pElbow + aim(vector(e, h, view))
             var changed = false
-            // Eine Hantel für beide Hände: Hände treffen sich vor der Körpermitte
-            if (info.sharedDumbbell) {
-                val off = (root - hipMid) dot left
-                pHand -= left * (off - 0.04f * kotlin.math.sign(off))
+            // Hände treffen sich vor der Körpermitte (gemeinsame Hantel, gefaltete Hände)
+            if (info.handsTogether) {
+                val off = (root - placed(torso[3])) dot chestLeft
+                pHand -= chestLeft * (off - 0.04f * outward)
+                changed = true
+            }
+            // Klimmzugstange: Hände etwas vor dem Körper, damit die Stange vor dem Gesicht liegt
+            if (info.bar && side) {
+                pHand += V3.Z * BAR_REACH
                 changed = true
             }
             // Aufstützen: Handgelenk knapp über der Fläche, Hand flach
@@ -217,7 +253,7 @@ class Rig3D(private val skeleton: FigureSkeleton) {
             val d1 = (pElbow - root).normalized(-up)
             val d2 = (pHand - pElbow).normalized(d1)
             // gestreckter Arm: Ellbogen beugt nach vorn (bzw. nach oben, wenn der Arm nach vorn zeigt)
-            val flex = forward.rejectFrom(d1).let { if (it.length < 0.2f) up.rejectFrom(d1) else it }.normalized()
+            val flex = chestForward.rejectFrom(d1).let { if (it.length < 0.2f) up.rejectFrom(d1) else it }.normalized()
             val hinge = hingeBlend(d1 cross d2, (d1 cross flex).normalized())
             val rest1 = (restPos(arm.elbow) - restPos(arm.root)).normalized()
             val restHinge = rest1 cross V3.Z
@@ -229,7 +265,10 @@ class Rig3D(private val skeleton: FigureSkeleton) {
             // Hand: folgt dem Unterarm oder liegt flach auf (Finger zeigen Richtung Kopf bzw. nach vorn)
             var handRot = rot2
             if (pressing > 0.01f) {
-                val flatDir = (up.copy(y = 0f) + forward.copy(y = 0f) * 0.6f).normalized(V3.Z)
+                // Brust zum Boden (Liegestütz, Pike): Finger Richtung Kopf. Sonst (Dips, Sitz): Finger nach vorn.
+                val prone = smooth(0.2f, 0.6f, -forward.y)
+                val toHead = up.copy(y = 0f).normalized(V3.Z)
+                val flatDir = (toHead * prone + forward.copy(y = 0f) * (1f - prone)).normalized(toHead)
                 val dirBlend = (d2 * (1f - pressing) + flatDir * pressing).normalized(flatDir)
                 val palmBlend = ((rot2 * -V3.Y) * (1f - pressing) + V3.Y * -pressing).normalized(-V3.Y)
                 val palm = palmBlend.rejectFrom(dirBlend).normalized(-V3.Y)
@@ -248,7 +287,7 @@ class Rig3D(private val skeleton: FigureSkeleton) {
             }
             val handDir = handRot * arm.restDir
             val palmNormal = handRot * -V3.Y
-            return pHand + handDir * 0.085f + palmNormal * (if (grip) 0.028f else 0f)
+            return (pHand + handDir * 0.085f + palmNormal * (if (grip) 0.028f else 0f)) to (handDir cross palmNormal).normalized()
         }
 
         fun solveLeg(leg: Leg, hp: Vec, k: Vec, a: Vec, toe: Vec, ankleShift: Float) {
@@ -256,12 +295,16 @@ class Rig3D(private val skeleton: FigureSkeleton) {
             var pKnee = root + vector(hp, k, view)
             var pAnkle = pKnee + vector(k, a, view)
             if (ankleShift != 0f) {
-                val (joint, end) = bend(root, pAnkle + V3.Z * ankleShift, (k - hp).length, (a - k).length, pKnee - root)
+                // Im Stand zeigt das Knie nach vorn – nie nach hinten durchgedrückt
+                val (joint, end) = bend(root, pAnkle + V3.Z * ankleShift, (k - hp).length, (a - k).length, forward)
                 pKnee = joint; pAnkle = end
             }
             val d1 = (pKnee - root).normalized(-up)
             val d2 = (pAnkle - pKnee).normalized(d1)
-            val hinge = hingeBlend(d1 cross d2, left.rejectFrom(d1).normalized(V3.X))
+            val kneeAxis = left.rejectFrom(d1).normalized(V3.X)
+            // Ein (fast) gestrecktes Bein darf die Scharnierachse nicht umklappen: sonst dreht sich das Bein um 180°
+            val bendAxis = (d1 cross d2).let { if (side && (it dot kneeAxis) < 0f) V3.ZERO else it }
+            val hinge = hingeBlend(bendAxis, kneeAxis)
             val rest1 = (restPos(leg.knee) - restPos(leg.root)).normalized()
             val rest2 = (restPos(leg.foot) - restPos(leg.knee)).normalized()
             world[leg.root] = Mat4.compose(M3.frame(d1, hinge) * M3.frame(rest1, V3.X).transposed() * restLin(leg.root), root)
@@ -277,8 +320,8 @@ class Rig3D(private val skeleton: FigureSkeleton) {
         val farArm = if (side) armL else armR
         val nearLeg = if (side) legR else legL
         val farLeg = if (side) legL else legR
-        val gripNear = solveArm(nearArm, sk.shoulderN, sk.elbowN, sk.handN, info.gripNear)
-        val gripFar = solveArm(farArm, sk.shoulderF, sk.elbowF, sk.handF, info.gripFar)
+        val (gripNear, barNear) = solveArm(nearArm, sk.shoulderN, sk.elbowN, sk.handN, info.gripNear, depth.swingN, depth.turnN)
+        val (gripFar, barFar) = solveArm(farArm, sk.shoulderF, sk.elbowF, sk.handF, info.gripFar, depth.swingF, depth.turnF)
 
         // Im 2D-Bild stehen die Füße leicht versetzt, damit man beide sieht – in 3D stehen sie nebeneinander.
         val gap = sk.ankleN.x - sk.ankleF.x
@@ -301,11 +344,12 @@ class Rig3D(private val skeleton: FigureSkeleton) {
                 w[index] = if (node.parent < 0) local[index] else Mat4.mul(w[node.parent], local[index])
             }
         }
-        return Solved(w, local, left, up, forward, gripNear, gripFar)
+        return Solved(w, local, chestLeft, up, chestForward, gripNear, gripFar, barNear, barFar)
     }
 
     /** Requisiten der Übung als 3D-Grundobjekte, passend zur gelösten Pose. */
-    fun props(anim: ExerciseAnimation, solved: Solved): List<Prop3> {
+    fun props(animation: ExerciseAnimation, solved: Solved): List<Prop3> {
+        val anim = animation.forThreeD
         val info = info(anim)
         val view = anim.view
         val side = view == View.SIDE
@@ -335,17 +379,21 @@ class Rig3D(private val skeleton: FigureSkeleton) {
 
         for (prop in anim.props) when (prop) {
             is Dumbbell -> {
-                val axis = when (prop.look) {
+                val fixed = when (prop.look) {
                     DumbbellLook.END_ON -> if (side) solved.left else V3.Z
                     DumbbellLook.BAR -> dir(prop.angle).let { if (side) V3(0f, it.y, it.x) else V3(it.x, it.y, 0f) }
                 }.normalized()
+                // Seitlich gezeichnete Hantel (Hammergriff): liegt quer in der Faust und dreht mit der Hand
+                val follow = prop.look == DumbbellLook.BAR && !info.handsTogether
+                val near = if (follow) solved.barNear else fixed
+                val far = if (follow) solved.barFar else fixed
                 when {
-                    info.sharedDumbbell -> dumbbell((solved.gripNear + solved.gripFar) * 0.5f, axis)
+                    info.handsTogether -> dumbbell((solved.gripNear + solved.gripFar) * 0.5f, fixed)
                     prop.hands == Hands.BOTH || (prop.hands == Hands.NEAR && info.armsTogether) -> {
-                        dumbbell(solved.gripNear, axis); dumbbell(solved.gripFar, axis)
+                        dumbbell(solved.gripNear, near); dumbbell(solved.gripFar, far)
                     }
-                    prop.hands == Hands.NEAR -> dumbbell(solved.gripNear, axis)
-                    else -> dumbbell(solved.gripFar, axis)
+                    prop.hands == Hands.NEAR -> dumbbell(solved.gripNear, near)
+                    else -> dumbbell(solved.gripFar, far)
                 }
             }
             is Box -> {
@@ -397,5 +445,11 @@ class Rig3D(private val skeleton: FigureSkeleton) {
     private companion object {
         /** Höhe des Handgelenks über der Fläche, wenn die Hand flach aufliegt. */
         const val PALM = 0.03f
+
+        /** So weit greifen die Hände an der Klimmzugstange nach vorn. */
+        const val BAR_REACH = 0.14f
+
+        /** Anteil der Oberkörper-Drehung je Rumpfgelenk (Reihenfolge wie [torso]). */
+        val TWIST_WEIGHT = floatArrayOf(0f, 0.3f, 0.65f, 1f, 1f, 1f, 1f)
     }
 }

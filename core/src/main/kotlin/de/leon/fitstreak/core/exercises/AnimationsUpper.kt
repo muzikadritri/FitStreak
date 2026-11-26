@@ -4,7 +4,10 @@ import de.leon.fitstreak.core.anim.Band
 import de.leon.fitstreak.core.anim.Body
 import de.leon.fitstreak.core.anim.Box
 import de.leon.fitstreak.core.anim.BoxStyle
+import de.leon.fitstreak.core.anim.Depth
 import de.leon.fitstreak.core.anim.Dumbbell
+import de.leon.fitstreak.core.anim.withPosesIn3d
+import de.leon.fitstreak.core.anim.withBothArmsIn3d
 import de.leon.fitstreak.core.anim.DumbbellLook
 import de.leon.fitstreak.core.anim.ExerciseAnimation
 import de.leon.fitstreak.core.anim.Fixed
@@ -130,8 +133,8 @@ internal val upperBodyAnimations: Map<String, ExerciseAnimation> = mapOf(
         // Naher Arm beugt und trägt die Last, der ferne Arm bleibt gestreckt und gleitet nach außen.
         // Der ferne Arm läuft über Winkel (FK), damit er auch zwischen den Keyframes gestreckt bleibt.
         poses = listOf(
-            P.plankLine(ankleX = -1.25f, shoulderY = 0.50f, armN = Ik(-0.14f, 0.03f), armF = Fk(35f, 35f)),
-            P.plankLine(ankleX = -1.25f, shoulderY = 0.18f, armN = Ik(-0.14f, 0.03f), armF = Fk(76f, 76f)),
+            P.plankLine(ankleX = -1.25f, shoulderY = 0.50f, armN = Ik(-0.14f, 0.03f), armF = Fk(35f, 35f)).copy(depth = Depth(turnF = 90f)),
+            P.plankLine(ankleX = -1.25f, shoulderY = 0.18f, armN = Ik(-0.14f, 0.03f), armF = Fk(76f, 76f)).copy(depth = Depth(turnF = 90f)),
         ),
         phases = downUp(),
         pivot = Vec(-1.25f, 0.15f),
@@ -143,7 +146,7 @@ internal val upperBodyAnimations: Map<String, ExerciseAnimation> = mapOf(
         ),
         phases = upDown(),
         props = listOf(Dumbbell(Hands.NEAR)),
-    ),
+    ).withBothArmsIn3d(),
     "bankdruecken" to ExerciseAnimation(
         poses = listOf(
             supine(hipY = 0.54f, feetX = 0.44f, armN = Fk(80f, 180f), armF = Fk(80f, 180f)),
@@ -181,7 +184,7 @@ internal val upperBodyAnimations: Map<String, ExerciseAnimation> = mapOf(
         ),
         phases = upDown(),
         props = listOf(Dumbbell(Hands.NEAR)),
-    ),
+    ).withBothArmsIn3d(),
     "seitheben" to ExerciseAnimation(
         view = View.FRONT,
         poses = listOf(
@@ -199,6 +202,12 @@ internal val upperBodyAnimations: Map<String, ExerciseAnimation> = mapOf(
         ),
         phases = thereAndBack("auseinanderziehen – 1 Sek", 1f, "zurück – 2 Sek", 2f),
         props = listOf(Band(OnJoint(JointRef.HAND_N), OnJoint(JointRef.HAND_F))),
+    ).withPosesIn3d(
+        view = View.SIDE,
+        poses = listOf(
+            P.stand(armN = Fk(86f, 88f), nearFootX = 0f, farFootX = 0f).copy(depth = Depth(swingN = 8f, swingF = 8f)),
+            P.stand(armN = Fk(86f, 88f), nearFootX = 0f, farFootX = 0f).copy(depth = Depth(swingN = 80f, swingF = 80f)),
+        ),
     ),
 
     // ---------- Rücken ----------
@@ -263,11 +272,13 @@ internal val upperBodyAnimations: Map<String, ExerciseAnimation> = mapOf(
                 hipX = 0f, hipY = 0.10f, torso = 95f, head = 97f,
                 armN = Fk(96f, 96f),
                 legN = Fk(-90f, -90f), footN = -90f,
+                depth = Depth(swingN = 90f, swingF = 90f),
             ),
             Pose(
                 hipX = 0f, hipY = 0.10f, torso = 95f, head = 97f,
                 armN = Fk(264f, 264f),
                 legN = Fk(-90f, -90f), footN = -90f,
+                depth = Depth(swingN = 90f, swingF = 90f),
             ),
         ),
         phases = thereAndBack("Arme zur Hüfte – 2 Sek", 2f, "nach vorn – 2 Sek", 2f),
@@ -296,7 +307,7 @@ internal val upperBodyAnimations: Map<String, ExerciseAnimation> = mapOf(
         ),
         phases = upDown(),
         props = listOf(Dumbbell(Hands.NEAR)),
-    ),
+    ).withBothArmsIn3d(),
     "hammer_curls" to ExerciseAnimation(
         poses = listOf(
             P.stand(armN = Fk(0f, 6f), armF = Fk(-4f, 4f)),
@@ -304,7 +315,7 @@ internal val upperBodyAnimations: Map<String, ExerciseAnimation> = mapOf(
         ),
         phases = upDown(),
         props = listOf(Dumbbell(Hands.NEAR, DumbbellLook.BAR, angle = 90f)),
-    ),
+    ).withBothArmsIn3d(),
     "konzentrations_curls" to ExerciseAnimation(
         poses = listOf(
             Pose(

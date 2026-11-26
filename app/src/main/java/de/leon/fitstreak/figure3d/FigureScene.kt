@@ -46,7 +46,8 @@ class Orbit(val target: V3, val radius: Float, val yaw: Float, val pitch: Float)
         const val FOV = 28f
 
         /** Startansicht: schräg von vorn, damit die Tiefe sichtbar ist – die Bewegung bleibt gut lesbar. */
-        fun forAnimation(anim: ExerciseAnimation, lift: Float): Orbit {
+        fun forAnimation(animation: ExerciseAnimation, lift: Float): Orbit {
+            val anim = animation.forThreeD
             val b = anim.bounds
             val cx = (b.minX + b.maxX) / 2f
             val cy = (b.maxY + lift) / 2f

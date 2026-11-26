@@ -44,6 +44,9 @@ def fail(msg):
     except Exception:
         pass
     print(adb("logcat", "-d", "-t", "300", "AndroidRuntime:E", "*:S", check=False))
+    # native Abstürze (z. B. aus der 3D-Engine) stehen nicht unter AndroidRuntime
+    native = adb("logcat", "-d", "Filament:V", "Figure3D:V", "DEBUG:V", "libc:F", "*:S", check=False)
+    print("\n".join(native.splitlines()[-70:]))
     sys.exit(1)
 
 

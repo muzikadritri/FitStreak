@@ -83,7 +83,7 @@ class Figure3DRuntime private constructor(context: Context) {
         bytes.rewind()
         val asset = loader.createAsset(bytes) ?: error("Modell konnte nicht geladen werden")
         resources.loadResources(asset)
-        asset.releaseSourceData()
+        // Die Quelldaten bleiben erhalten: der Animator (für die Knochen-Matrizen) braucht sie.
         return asset
     }
 
@@ -126,6 +126,7 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
 
     private val figure: FilamentAsset = runtime.load(runtime.figureBytes)
     private val figureMaterials: Array<MaterialInstance> = figure.instance.materialInstances
+    private val animator = figure.instance.animator
     private val nodeEntities: IntArray
     private val nodeInstances: IntArray
 
@@ -305,7 +306,7 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
         for (i in box until boxes.size) boxes[i].hide()
         for (i in cylinder until cylinders.size) cylinders[i].hide()
         tm.commitLocalTransformTransaction()
-        figure.instance.animator.updateBoneMatrices()
+        animator.updateBoneMatrices()
 
         val eye = o.eye(o.distance(Orbit.FOV, aspect.toFloat()))
         camera.setProjection(Orbit.FOV.toDouble(), aspect, 0.1, 40.0, Camera.Fov.VERTICAL)

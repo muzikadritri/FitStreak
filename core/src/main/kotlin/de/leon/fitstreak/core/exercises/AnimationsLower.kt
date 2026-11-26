@@ -3,7 +3,9 @@ package de.leon.fitstreak.core.exercises
 import de.leon.fitstreak.core.anim.Body
 import de.leon.fitstreak.core.anim.Box
 import de.leon.fitstreak.core.anim.BoxStyle
+import de.leon.fitstreak.core.anim.Depth
 import de.leon.fitstreak.core.anim.Dumbbell
+import de.leon.fitstreak.core.anim.withPosesIn3d
 import de.leon.fitstreak.core.anim.DumbbellLook
 import de.leon.fitstreak.core.anim.ExerciseAnimation
 import de.leon.fitstreak.core.anim.Fk
@@ -412,6 +414,16 @@ internal val lowerBodyAnimations: Map<String, ExerciseAnimation> = mapOf(
             Phase("zur anderen Seite", 0.8f, 2),
             Phase("zurück zur Mitte", 0.6f, 0),
         ),
+    ).withPosesIn3d(
+        poses = listOf(0f, 48f, -48f).map { twist ->
+            Pose(
+                hipX = 0f, hipY = FLOOR_HIP, torso = 222f, head = 205f,
+                armN = Ik(0.10f, 0.42f),
+                legN = Ik(0.60f, 0.06f), legF = Ik(0.56f, 0.06f),
+                footN = 125f,
+                depth = Depth(twist = twist),
+            )
+        },
     ),
 
     "fahrrad_crunches" to ExerciseAnimation(

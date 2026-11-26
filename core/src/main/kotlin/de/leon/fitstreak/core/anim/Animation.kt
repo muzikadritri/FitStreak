@@ -60,12 +60,21 @@ data class ExerciseAnimation(
     val props: List<Prop> = emptyList(),
     /** Fester Drehpunkt für die Hüftbahn, siehe [interpolate]. */
     val pivot: Vec? = null,
+    /**
+     * Eigene Fassung für die 3D-Figur, wenn die 2D-Zeichnung bewusst vereinfacht (z. B. nur ein Arm
+     * bewegt sich, damit man ihn in der Seitenansicht sieht). Muss dieselben Phasen haben.
+     */
+    val threeD: ExerciseAnimation? = null,
 ) {
     init {
         require(poses.isNotEmpty()) { "Mindestens eine Pose" }
         require(phases.isNotEmpty()) { "Mindestens eine Phase" }
         require(phases.all { it.to in poses.indices }) { "Phase zeigt auf unbekannte Pose" }
+        require(threeD == null || threeD.phases.map { it.seconds } == phases.map { it.seconds }) { "3D-Fassung braucht dieselben Phasen" }
     }
+
+    /** Die Fassung, die die 3D-Figur zeigt. */
+    val forThreeD: ExerciseAnimation get() = threeD ?: this
 
     val cycleSeconds: Float = phases.sumOf { it.seconds.toDouble() }.toFloat()
 
@@ -143,3 +152,16 @@ fun hold(seconds: Float = 2f): List<Phase> =
 /** Wechselseitige Übung: Posen = [Seite A, Seite B]. */
 fun alternate(seconds: Float = 1f, labelA: String = "Seite wechseln", labelB: String = labelA): List<Phase> =
     listOf(Phase(labelA, seconds, 1), Phase(labelB, seconds, 0))
+
+
+/** 3D-Fassung, in der beide Arme dasselbe tun und jede Hand eine Hantel hält. */
+fun ExerciseAnimation.withBothArmsIn3d(): ExerciseAnimation = copy(
+    threeD = copy(
+        poses = poses.map { it.copy(armF = it.armN) },
+        props = props.map { if (it is Dumbbell && it.hands == Hands.NEAR) it.copy(hands = Hands.BOTH) else it },
+    ),
+)
+
+/** 3D-Fassung mit eigenen Posen (gleiche Phasen und Requisiten). */
+fun ExerciseAnimation.withPosesIn3d(view: View = this.view, poses: List<Pose>): ExerciseAnimation =
+    copy(threeD = copy(view = view, poses = poses, pivot = if (view == this.view) pivot else null))
