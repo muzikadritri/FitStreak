@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -48,7 +47,6 @@ import de.leon.fitstreak.ui.components.TimeStepper
 import de.leon.fitstreak.ui.components.formatTime
 import de.leon.fitstreak.ui.onboarding.DumbbellEditor
 import de.leon.fitstreak.ui.onboarding.WeekdayPicker
-import de.leon.fitstreak.ui.theme.Brand
 import de.leon.fitstreak.ui.theme.fit
 import java.time.LocalDate
 
@@ -99,7 +97,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
     ScreenScaffold("Einstellungen", onBack) { pad ->
         Column(
             Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             FitCard {
                 Text("Profil", style = MaterialTheme.typography.titleLarge)
@@ -108,7 +106,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { v -> if (v.length <= 24) { name = v; vm.updateSettings { it.copy(name = v.trim()) } } },
-                    label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(14.dp),
+                    label = { Text("Name") }, singleLine = true, modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium,
                 )
             }
 
@@ -128,17 +126,17 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
                 ThinDivider()
                 TextButton(onClick = { platform.sendTestNotification(); tick++ }) { Text("Test-Benachrichtigung senden") }
                 if (!notificationsOk) {
-                    Spacer(Modifier.height(6.dp))
-                    Banner(FitIcon.SHIELD, "Benachrichtigungen sind blockiert", "Android zeigt aktuell keine Erinnerungen von FitStreak an. Erlaube sie in den System-Einstellungen.", Brand.Red) {
+                    Spacer(Modifier.height(8.dp))
+                    Banner(FitIcon.SHIELD, "Benachrichtigungen sind blockiert", "Android zeigt aktuell keine Erinnerungen von FitStreak an. Erlaube sie in den System-Einstellungen.", fit.streak) {
                         TextButton(onClick = { platform.openNotificationSettings() }) { Text("Einstellungen öffnen") }
                     }
                 }
                 if (batteryLimited) {
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(8.dp))
                     Banner(
                         FitIcon.BOLT, "Akku-Optimierung aktiv",
                         "Manche Handys verzögern oder unterdrücken Erinnerungen, um Akku zu sparen. Wenn Erinnerungen zu spät kommen: FitStreak in der Akku-Optimierung auf „Nicht optimieren“ stellen.",
-                        Brand.Orange,
+                        fit.xpInk,
                     ) { TextButton(onClick = { platform.openBatterySettings() }) { Text("Akku-Einstellungen") } }
                 }
             }
@@ -176,9 +174,9 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
             FitCard {
                 Text("Trainingstage", style = MaterialTheme.typography.titleLarge)
                 Text("Verschiebe deine Trainingstage – der Plan bleibt gleich.", color = fit.muted, style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
                 WeekdayPicker(weekdays, { weekdays = it })
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 if (weekdays.size != days) {
                     Text("Bitte genau $days Tage auswählen (aktuell ${weekdays.size}).", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 } else if (weekdaysChanged && !planChanged) {
@@ -189,17 +187,17 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
             FitCard {
                 Text("Ziele & Ausrüstung", style = MaterialTheme.typography.titleLarge)
                 Text("Änderungen hier erstellen den Wochenplan neu.", color = fit.muted, style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
                 Text("Ziele", style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (g in Goal.entries) ChoiceChip(g.label, g in goals, { goals = if (g in goals) goals - g else goals + g })
                 }
                 Spacer(Modifier.height(12.dp))
                 Text("Ausrüstung", style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    for (e in Equipment.entries.drop(1)) ChoiceChip(e.label, e in equipment, { equipment = if (e in equipment) equipment - e else equipment + e }, selectedColor = Brand.Orange)
+                    for (e in Equipment.entries.drop(1)) ChoiceChip(e.label, e in equipment, { equipment = if (e in equipment) equipment - e else equipment + e })
                 }
                 if (Equipment.KURZHANTEL in equipment) {
                     Spacer(Modifier.height(12.dp))
@@ -207,7 +205,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
                 Spacer(Modifier.height(12.dp))
                 Text("Trainingstage pro Woche", style = MaterialTheme.typography.titleSmall)
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (d in 3..5) ChoiceChip("$d Tage", d == days, { days = d; weekdays = PlanGenerator.defaultWeekdays(d) })
                 }
@@ -216,22 +214,22 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
                     if (planChanged) "Plan neu erstellen" else "Plan zurücksetzen",
                     onClick = { planDialog = true },
                     enabled = goals.isNotEmpty() && weekdays.size == days && (Equipment.KURZHANTEL !in equipment || weights.isNotEmpty()),
-                    color = if (planChanged) MaterialTheme.colorScheme.primary else fit.cardMuted,
-                    contentColor = if (planChanged) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                    color = if (planChanged) fit.accent else fit.cardMuted,
+                    contentColor = if (planChanged) fit.onAccent else fit.text,
                 )
             }
 
             FitCard {
                 Text("Backup", style = MaterialTheme.typography.titleLarge)
                 Text("Sichere alle Daten als JSON-Datei (z. B. in Downloads oder Google Drive) und spiele sie auf einem neuen Handy wieder ein.", color = fit.muted, style = MaterialTheme.typography.bodySmall)
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    PrimaryButton("Exportieren", export, Modifier.weight(1f))
-                    PrimaryButton("Importieren", import, Modifier.weight(1f), color = fit.cardMuted, contentColor = MaterialTheme.colorScheme.onSurface)
+                    PrimaryButton("Exportieren", export, Modifier.weight(1f), color = fit.cardMuted, contentColor = fit.text)
+                    PrimaryButton("Importieren", import, Modifier.weight(1f), color = fit.cardMuted, contentColor = fit.text)
                 }
                 message?.let {
                     Spacer(Modifier.height(8.dp))
-                    Text(it, color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleSmall)
+                    Text(it, color = fit.textSecondary, style = MaterialTheme.typography.titleSmall)
                 }
             }
 

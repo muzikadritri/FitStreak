@@ -64,7 +64,7 @@ object ProgressionEngine {
             // 1) mehr Gewicht
             nextWeight(e, cur, dumbbellKg)?.let { w ->
                 val next = cur.copy(weightKg = w, repMin = baseMin(e, cur), repMax = cur.repMax, tempo = Tempo.NORMAL, failStreak = 0)
-                return ProgressionResult(next, Change.GEWICHT_HOCH, "Stark! Nächstes Mal ${fmtKg(w)} kg.")
+                return ProgressionResult(next, Change.GEWICHT_HOCH, "Nächstes Mal ${fmtKg(w)} kg.")
             }
             // 2) schwerere Variante
             harderAvailable(e, equipment)?.let { h ->

@@ -16,10 +16,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -41,6 +38,9 @@ import de.leon.fitstreak.core.model.Muscle
 import de.leon.fitstreak.ui.components.ChoiceChip
 import de.leon.fitstreak.ui.components.FigureBox
 import de.leon.fitstreak.ui.components.FitCard
+import de.leon.fitstreak.ui.components.FitIcon
+import de.leon.fitstreak.ui.components.FitIconView
+import de.leon.fitstreak.ui.components.Meta
 import de.leon.fitstreak.ui.components.MiniExerciseFigure
 import de.leon.fitstreak.ui.components.Pill
 import de.leon.fitstreak.ui.components.WindowInsetsCompat
@@ -49,7 +49,7 @@ import de.leon.fitstreak.ui.theme.fit
 
 fun difficultyColor(d: Difficulty): Color = when (d) {
     Difficulty.LEICHT -> Brand.Green
-    Difficulty.MITTEL -> Brand.Orange
+    Difficulty.MITTEL -> Brand.Yellow
     Difficulty.SCHWER -> Brand.Red
 }
 
@@ -68,10 +68,10 @@ fun ExerciseRow(e: Exercise, onClick: () -> Unit, animate: Boolean = true, trail
                     (e.primary + e.secondary).joinToString(" · ") { it.label },
                     style = MaterialTheme.typography.bodySmall, color = fit.muted, maxLines = 1,
                 )
-                Spacer(Modifier.height(6.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                Spacer(Modifier.height(8.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Pill(e.difficulty.label, difficultyColor(e.difficulty))
-                    Text(equipmentText(e), style = MaterialTheme.typography.labelMedium, color = fit.muted, maxLines = 1)
+                    Meta("· " + equipmentText(e))
                 }
             }
             trailing?.invoke()
@@ -102,33 +102,33 @@ fun LibraryScreen(onExercise: (String) -> Unit) {
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
             Column(Modifier.padding(WindowInsetsCompat.statusBars())) {
                 Text("Übungen", style = MaterialTheme.typography.headlineMedium)
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = query, onValueChange = { query = it }, singleLine = true,
                     placeholder = { Text("Übung oder Muskel suchen") },
-                    leadingIcon = { Icon(Icons.Filled.Search, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+                    leadingIcon = { FitIconView(FitIcon.SEARCH, tint = fit.muted, size = 20.dp) },
+                    modifier = Modifier.fillMaxWidth(), shape = MaterialTheme.shapes.medium,
                 )
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     ChoiceChip("Alle Muskeln", muscle == null, { muscle = null })
                     for (m in Muscle.entries) ChoiceChip(m.label, muscle == m, { muscle = if (muscle == m) null else m })
                 }
                 Spacer(Modifier.height(8.dp))
                 Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ChoiceChip("Jede Ausrüstung", equipment == null, { equipment = null }, selectedColor = Brand.Orange)
-                    for (e in Equipment.entries) ChoiceChip(e.label, equipment == e, { equipment = if (equipment == e) null else e }, selectedColor = Brand.Orange)
+                    ChoiceChip("Jede Ausrüstung", equipment == null, { equipment = null })
+                    for (e in Equipment.entries) ChoiceChip(e.label, equipment == e, { equipment = if (equipment == e) null else e })
                 }
-                Spacer(Modifier.height(6.dp))
-                Text("${results.size} Übungen", color = fit.muted, style = MaterialTheme.typography.labelLarge)
+                Spacer(Modifier.height(8.dp))
+                Meta("${results.size} Übungen")
             }
         }
         items(results, key = { it.id }) { e -> ExerciseRow(e, { onExercise(e.id) }) }
-        if (results.isEmpty()) item { Text("Keine Übung gefunden. Filter anpassen?", color = fit.muted, modifier = Modifier.padding(24.dp)) }
+        if (results.isEmpty()) item { Text("Keine Übung gefunden", color = fit.muted, modifier = Modifier.padding(24.dp)) }
     }
 }

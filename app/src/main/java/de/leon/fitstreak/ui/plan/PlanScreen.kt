@@ -1,6 +1,5 @@
 package de.leon.fitstreak.ui.plan
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -17,7 +16,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +32,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import de.leon.fitstreak.core.exercises.ExerciseLibrary
@@ -54,13 +51,16 @@ import de.leon.fitstreak.ui.components.FigureBox
 import de.leon.fitstreak.ui.components.FitCard
 import de.leon.fitstreak.ui.components.FitIcon
 import de.leon.fitstreak.ui.components.FitIconView
+import de.leon.fitstreak.ui.components.Meta
 import de.leon.fitstreak.ui.components.Pill
+import de.leon.fitstreak.ui.components.RoundIconButton
+import de.leon.fitstreak.ui.components.pressable
 import de.leon.fitstreak.ui.components.PrimaryButton
 import de.leon.fitstreak.ui.components.ScreenScaffold
 import de.leon.fitstreak.ui.components.StaticExerciseFigure
 import de.leon.fitstreak.ui.components.Stepper
 import de.leon.fitstreak.ui.library.ExerciseRow
-import de.leon.fitstreak.ui.theme.Brand
+import de.leon.fitstreak.ui.theme.FitText
 import de.leon.fitstreak.ui.theme.fit
 import de.leon.fitstreak.ui.workout.formatTarget
 import java.time.DayOfWeek
@@ -87,16 +87,16 @@ fun PlanScreen(vm: AppViewModel, onBack: () -> Unit, onStart: (Long) -> Unit, on
             item {
                 FitCard {
                     Text("Diese Woche", style = MaterialTheme.typography.titleLarge)
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(8.dp))
                     for ((date, w) in week) {
                         Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 date.format(DateTimeFormatter.ofPattern("EEE", Locale.GERMAN)).take(2),
                                 style = MaterialTheme.typography.titleSmall, modifier = Modifier.width(36.dp),
-                                color = if (date == today) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                color = if (date == today) fit.text else fit.muted,
                             )
-                            Text(w?.template?.name ?: "Ruhetag", color = if (w == null) fit.muted else MaterialTheme.colorScheme.onSurface, modifier = Modifier.weight(1f))
-                            if (data.trainedOn(date)) Pill("erledigt", fit.done) else if (date == today) Pill("heute", MaterialTheme.colorScheme.primary)
+                            Text(w?.template?.name ?: "Ruhetag", color = if (w == null) fit.muted else fit.text, modifier = Modifier.weight(1f))
+                            if (data.trainedOn(date)) Pill("erledigt", fit.done) else if (date == today) Pill("heute", fit.accent)
                         }
                     }
                 }
@@ -107,7 +107,7 @@ fun PlanScreen(vm: AppViewModel, onBack: () -> Unit, onStart: (Long) -> Unit, on
             if (data.customWorkouts.isEmpty()) item { Text("Stell dir ein eigenes Workout aus der Übungsbibliothek zusammen.", color = fit.muted) }
             items(data.customWorkouts, key = { it.id }) { w -> WorkoutPlanCard(w, { onStart(w.id) }, { onEdit(w.id) }) }
             item {
-                PrimaryButton("Eigenes Workout erstellen", { createDialog = true }, leading = { FitIconView(FitIcon.PLUS, tint = Color.White, size = 18.dp) })
+                PrimaryButton("Eigenes Workout erstellen", { createDialog = true }, leading = { FitIconView(FitIcon.PLUS, size = 20.dp) })
             }
         }
     }
@@ -137,14 +137,14 @@ private fun WorkoutPlanCard(w: TemplateWithExercises, onStart: () -> Unit, onEdi
         Text(w.template.name, style = MaterialTheme.typography.titleLarge)
         Text(
             "${w.template.focus} · ${w.exercises.size} Übungen · ca. ${PlanGenerator.estimateMinutes(w.exercises.map { it.toPlan() })} min",
-            color = fit.muted, style = MaterialTheme.typography.bodySmall,
+            color = fit.muted, style = FitText.meta,
         )
         Spacer(Modifier.height(8.dp))
-        Text(w.exercises.mapNotNull { it.exercise?.name }.joinToString(" · "), style = MaterialTheme.typography.bodyMedium)
-        Spacer(Modifier.height(10.dp))
+        Text(w.exercises.mapNotNull { it.exercise?.name }.joinToString(" · "), style = MaterialTheme.typography.bodyMedium, color = fit.textSecondary)
+        Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            PrimaryButton("Bearbeiten", onEdit, Modifier.weight(1f), color = fit.cardMuted, contentColor = MaterialTheme.colorScheme.onSurface)
-            PrimaryButton("Starten", onStart, Modifier.weight(1f), enabled = w.exercises.isNotEmpty())
+            PrimaryButton("Bearbeiten", onEdit, Modifier.weight(1f), color = fit.cardMuted, contentColor = fit.text)
+            PrimaryButton("Starten", onStart, Modifier.weight(1f), enabled = w.exercises.isNotEmpty(), color = fit.cardMuted, contentColor = fit.text)
         }
     }
 }
@@ -184,32 +184,29 @@ fun PlanEditScreen(vm: AppViewModel, templateId: Long, onBack: () -> Unit, onExe
                 val index = template.exercises.indexOf(row)
                 FitCard(padding = 12.dp) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        FigureBox(Modifier.size(60.dp).clickable { onExercise(e.id) }) {
-                            StaticExerciseFigure(e, e.animation.cycleSeconds * 0.3f, Modifier.fillMaxSize().padding(3.dp))
+                        FigureBox(Modifier.size(56.dp).pressable { onExercise(e.id) }) {
+                            StaticExerciseFigure(e, e.animation.cycleSeconds * 0.3f, Modifier.fillMaxSize().padding(4.dp))
                         }
                         Spacer(Modifier.width(12.dp))
                         Column(Modifier.weight(1f)) {
                             Text(e.name, style = MaterialTheme.typography.titleMedium)
-                            Text(formatTarget(e, row.sets, row.repMin, row.repMax, row.weightKg), color = fit.muted, style = MaterialTheme.typography.bodySmall)
+                            Meta(formatTarget(e, row.sets, row.repMin, row.repMax, row.weightKg))
                             val tempo = Tempo.entries.getOrElse(row.tempo) { Tempo.NORMAL }
-                            if (tempo != Tempo.NORMAL) Text("Tempo: ${tempo.label}", color = Brand.Orange, style = MaterialTheme.typography.bodySmall)
+                            if (tempo != Tempo.NORMAL) Meta("Tempo: ${tempo.label}", color = fit.textSecondary)
                         }
                     }
                     Spacer(Modifier.height(8.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                         ChoiceChip("Anpassen", false, { editRow = row })
-                        ChoiceChip("Alternative vorschlagen", false, { swapRow = row })
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                        if (index > 0) ChoiceChip("↑ hoch", false, { vm.moveExercise(row.id, -1) })
-                        if (index < template.exercises.lastIndex) ChoiceChip("↓ runter", false, { vm.moveExercise(row.id, 1) })
+                        ChoiceChip("Alternative", false, { swapRow = row })
                         Spacer(Modifier.weight(1f))
-                        ChoiceChip("Entfernen", false, { vm.removeExercise(row.id) })
+                        RoundIconButton(FitIcon.UP, { vm.moveExercise(row.id, -1) }, size = 36.dp, enabled = index > 0, description = "nach oben")
+                        RoundIconButton(FitIcon.DOWN, { vm.moveExercise(row.id, 1) }, size = 36.dp, enabled = index < template.exercises.lastIndex, description = "nach unten")
+                        RoundIconButton(FitIcon.CLOSE, { vm.removeExercise(row.id) }, size = 36.dp, description = "entfernen")
                     }
                 }
             }
-            item { PrimaryButton("Übung hinzufügen", { addDialog = true }, leading = { FitIconView(FitIcon.PLUS, tint = Color.White, size = 18.dp) }) }
+            item { PrimaryButton("Übung hinzufügen", { addDialog = true }, leading = { FitIconView(FitIcon.PLUS, size = 20.dp) }) }
             if (!template.template.inRotation) item {
                 TextButton(onClick = { deleteDialog = true }) { Text("Workout löschen", color = MaterialTheme.colorScheme.error) }
             }
@@ -284,7 +281,7 @@ private fun PrescriptionDialog(row: TemplateExerciseEntity, onDismiss: () -> Uni
                     Stepper(ProgressionEngine.fmtKg(draft.weightKg), "kg", { draft = draft.copy(weightKg = (draft.weightKg - inc).coerceAtLeast(0.0)) }, { draft = draft.copy(weightKg = draft.weightKg + inc) }, minusEnabled = draft.weightKg > 0)
                 }
                 Stepper(draft.restSec.toString(), "Sek. Pause", { draft = draft.copy(restSec = draft.restSec - 15) }, { draft = draft.copy(restSec = draft.restSec + 15) }, minusEnabled = draft.restSec > 15, plusEnabled = draft.restSec < 240)
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     for (t in Tempo.entries) ChoiceChip(if (t == Tempo.NORMAL) "Normal" else if (t == Tempo.LANGSAM) "Langsam" else "Mit Pause", draft.tempo == t.ordinal, { draft = draft.copy(tempo = t.ordinal) })
                 }
             }
@@ -306,13 +303,13 @@ private fun ExercisePickerDialog(
     var muscle by remember { mutableStateOf<Muscle?>(null) }
     val shown = if (muscle == null) exercises else exercises.filter { muscle in it.primary }
     Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.background, contentColor = MaterialTheme.colorScheme.onBackground) {
+        Surface(shape = MaterialTheme.shapes.extraLarge, color = fit.bg, contentColor = fit.text) {
             Column(Modifier.padding(16.dp).heightIn(max = 620.dp)) {
                 Text(title, style = MaterialTheme.typography.titleLarge)
                 Text(subtitle, color = fit.muted, style = MaterialTheme.typography.bodySmall)
                 Spacer(Modifier.height(8.dp))
                 if (showFilter) {
-                    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    androidx.compose.foundation.lazy.LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         item { ChoiceChip("Alle", muscle == null, { muscle = null }) }
                         items(Muscle.entries.toList()) { m -> ChoiceChip(m.label, muscle == m, { muscle = m }) }
                     }

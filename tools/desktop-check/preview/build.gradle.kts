@@ -22,6 +22,7 @@ kotlin {
             "**/FitStreakApp.kt",
             "**/AppContainer.kt",
             "**/ui/Navigation.kt",
+            "**/ui/theme/Fonts.kt",
             "**/data/db/AppDatabase.kt",
             "**/data/settings/DataStoreSettingsStore.kt",
             "**/platform/**",
@@ -43,7 +44,6 @@ dependencies {
     implementation(project(":core"))
     implementation("org.jetbrains.compose.desktop:desktop-jvm-linux-x64:$cmp")
     implementation("org.jetbrains.compose.material3:material3-desktop:$cmp")
-    implementation("org.jetbrains.compose.material:material-icons-core-desktop:$cmp")
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.core)
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-swing:${libs.versions.coroutines.get()}")

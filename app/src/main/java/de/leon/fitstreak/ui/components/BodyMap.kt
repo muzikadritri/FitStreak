@@ -31,7 +31,7 @@ fun BodyMap(
     modifier: Modifier = Modifier,
     base: Color = fit.bodyBase,
 ) {
-    val outline = MaterialTheme.colorScheme.background
+    val outline = fit.card
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         for (front in listOf(true, false)) {
             Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally) {

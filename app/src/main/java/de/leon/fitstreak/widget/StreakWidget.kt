@@ -54,9 +54,9 @@ class StreakWidget : GlanceAppWidget() {
             val trained = data.trainedOn(today)
             val (line1, line2) = when {
                 !data.loaded || !data.settings.onboardingDone -> "FitStreak" to "Tippen zum Starten"
-                workout == null -> "Ruhetag" to "Erholung zählt für die Streak"
-                trained -> workout.template.name to "Erledigt – stark!"
-                else -> workout.template.name to "Heute dran – tippen zum Starten"
+                workout == null -> "Ruhetag" to "zählt für die Streak"
+                trained -> workout.template.name to "Erledigt"
+                else -> workout.template.name to "Heute dran"
             }
             WidgetContent(streak, line1, line2, trained, GlanceModifier.clickable(actionStartActivity(open)))
         }
@@ -72,7 +72,7 @@ class StreakWidget : GlanceAppWidget() {
 @Composable
 private fun WidgetContent(streak: Int, line1: String, line2: String, done: Boolean, clickable: GlanceModifier) {
     val white = ColorProvider(Color.White)
-    val soft = ColorProvider(Color(0xFFD6E0FF))
+    val soft = ColorProvider(Color(0xFFA1A1A6))
     Column(
         modifier = GlanceModifier.fillMaxSize().background(ImageProvider(R.drawable.widget_background)).padding(14.dp).then(clickable),
         verticalAlignment = Alignment.CenterVertically,
@@ -80,13 +80,13 @@ private fun WidgetContent(streak: Int, line1: String, line2: String, done: Boole
         Row(modifier = GlanceModifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Image(provider = ImageProvider(R.drawable.ic_widget_flame), contentDescription = "Streak", modifier = GlanceModifier.size(40.dp))
             Spacer(GlanceModifier.width(8.dp))
-            Text(streak.toString(), style = TextStyle(color = white, fontSize = 36.sp, fontWeight = FontWeight.Bold))
+            Text(streak.toString(), style = TextStyle(color = white, fontSize = 36.sp, fontWeight = FontWeight.Medium))
             Spacer(GlanceModifier.width(6.dp))
-            Text(if (streak == 1) "Tag" else "Tage", style = TextStyle(color = soft, fontSize = 15.sp, fontWeight = FontWeight.Medium))
+            Text(if (streak == 1) "Tag" else "Tage", style = TextStyle(color = soft, fontSize = 14.sp, fontWeight = FontWeight.Normal))
         }
         Spacer(GlanceModifier.height(6.dp))
-        Text(line1, style = TextStyle(color = white, fontSize = 16.sp, fontWeight = FontWeight.Bold), maxLines = 1)
-        Text(line2, style = TextStyle(color = if (done) ColorProvider(Color(0xFF8CF0B4)) else soft, fontSize = 12.sp), maxLines = 1)
+        Text(line1, style = TextStyle(color = white, fontSize = 16.sp, fontWeight = FontWeight.Medium), maxLines = 1)
+        Text(line2, style = TextStyle(color = if (done) ColorProvider(Color(0xFF4CC38A)) else soft, fontSize = 12.sp), maxLines = 1)
     }
 }
 

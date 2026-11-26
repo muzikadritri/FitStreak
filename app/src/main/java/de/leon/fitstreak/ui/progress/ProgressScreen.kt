@@ -1,6 +1,5 @@
 package de.leon.fitstreak.ui.progress
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -15,7 +14,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,7 +29,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import de.leon.fitstreak.core.model.LoadType
 import de.leon.fitstreak.core.model.Muscle
@@ -48,13 +45,15 @@ import de.leon.fitstreak.ui.components.FitIcon
 import de.leon.fitstreak.ui.components.Heatmap
 import de.leon.fitstreak.ui.components.LegendDot
 import de.leon.fitstreak.ui.components.LineChart
+import de.leon.fitstreak.ui.components.Meta
 import de.leon.fitstreak.ui.components.NumberField
+import de.leon.fitstreak.ui.components.pressable
 import de.leon.fitstreak.ui.components.Pill
 import de.leon.fitstreak.ui.components.ThinDivider
 import de.leon.fitstreak.ui.components.WindowInsetsCompat
 import de.leon.fitstreak.ui.components.dayStateColor
 import de.leon.fitstreak.ui.components.toDoubleDe
-import de.leon.fitstreak.ui.theme.Brand
+import de.leon.fitstreak.ui.theme.FitText
 import de.leon.fitstreak.ui.theme.fit
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -62,12 +61,12 @@ import kotlin.math.roundToInt
 
 private val shortDate = DateTimeFormatter.ofPattern("d.M.")
 
-/** Farbe nach Anzahl Sätze pro Woche. */
-fun setsColor(sets: Float): Color? = when {
+/** Eine Farbe in drei Stufen: je mehr Sätze pro Woche, desto kräftiger. */
+fun setsColor(sets: Float, base: Color): Color? = when {
     sets <= 0f -> null
-    sets < 4f -> Brand.Yellow
-    sets < 9f -> Brand.Orange
-    else -> Brand.Red
+    sets < 4f -> base.copy(alpha = 0.3f)
+    sets < 9f -> base.copy(alpha = 0.6f)
+    else -> base
 }
 
 private fun fmtSets(v: Float): String = if (v == v.toInt().toFloat()) v.toInt().toString() else String.format("%.1f", v).replace('.', ',')
@@ -82,7 +81,7 @@ fun ProgressScreen(vm: AppViewModel, onExercise: (String) -> Unit) {
     LazyColumn(
         Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(14.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item { Text("Fortschritt", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(WindowInsetsCompat.statusBars())) }
         item { MuscleOverview(data, today, vm.nowMillis()) }
@@ -101,7 +100,7 @@ fun ProgressScreen(vm: AppViewModel, onExercise: (String) -> Unit) {
             onDismissRequest = { showTest = false },
             title = { Text("Monatstest") },
             text = {
-                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Jeweils so viele saubere Wiederholungen wie möglich – mit Pause zwischen den Übungen.")
                     NumberField(pushups, { pushups = it }, "Liegestütze (max.)", Modifier.fillMaxWidth())
                     NumberField(plank, { plank = it }, "Plank (Sekunden)", Modifier.fillMaxWidth())
@@ -128,7 +127,7 @@ fun ProgressScreen(vm: AppViewModel, onExercise: (String) -> Unit) {
             onDismissRequest = { showMeasure = false },
             title = { Text("Körpermaße eintragen") },
             text = {
-                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text("Am besten morgens und immer an derselben Stelle messen. Leere Felder werden übersprungen.")
                     NumberField(arm, { arm = it }, "Oberarm (angespannt)", Modifier.fillMaxWidth(), suffix = "cm", decimal = true)
                     NumberField(chest, { chest = it }, "Brust", Modifier.fillMaxWidth(), suffix = "cm", decimal = true)
@@ -156,39 +155,40 @@ private fun MuscleOverview(data: AppData, today: LocalDate, now: Long) {
     FitCard {
         Text("Muskel-Übersicht", style = MaterialTheme.typography.titleLarge)
         Text("Trainierte Muskeln diese Woche – eingefärbt nach Sätzen", color = fit.muted, style = MaterialTheme.typography.bodySmall)
-        Spacer(Modifier.height(10.dp))
-        BodyMap(colorFor = { setsColor(sets[it] ?: 0f) }, modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp))
+        Spacer(Modifier.height(12.dp))
+        val tone = fit.streak
+        BodyMap(colorFor = { setsColor(sets[it] ?: 0f, tone) }, modifier = Modifier.fillMaxWidth().padding(horizontal = 40.dp))
         Spacer(Modifier.height(8.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            LegendDot(Brand.Yellow, "1–3 Sätze")
-            LegendDot(Brand.Orange, "4–8")
-            LegendDot(Brand.Red, "9+")
+        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            LegendDot(tone.copy(alpha = 0.3f), "1–3 Sätze")
+            LegendDot(tone.copy(alpha = 0.6f), "4–8")
+            LegendDot(tone, "9+")
         }
         Spacer(Modifier.height(12.dp))
         for (m in Muscle.entries) {
             val s = sets[m] ?: 0f
             val rec = data.recovery(m, now)
-            Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(Modifier.weight(1f)) {
                     Text(m.label, style = MaterialTheme.typography.titleSmall)
-                    Text("${fmtSets(s)} Sätze diese Woche", color = fit.muted, style = MaterialTheme.typography.bodySmall)
+                    Meta("${fmtSets(s)} Sätze diese Woche")
                 }
                 when {
-                    data.lastTrained(m) == null -> Text("noch nicht trainiert", color = fit.muted, style = MaterialTheme.typography.bodySmall)
+                    data.lastTrained(m) == null -> Meta("noch nicht trainiert")
                     rec.ready -> Pill("bereit", fit.done)
-                    else -> Pill("erholt sich noch – ${rec.hoursLeft} Std.", Brand.Orange)
+                    else -> Pill("erholt sich noch – ${rec.hoursLeft} Std.", fit.xp)
                 }
             }
         }
         if (neglected.isNotEmpty()) {
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             Banner(
                 FitIcon.BULB, "Nicht vergessen",
                 neglected.joinToString(", ") { m ->
                     val d = data.daysSince(m, today)
                     if (d == null) "${m.label} (noch nie)" else "${m.label} (seit $d Tagen)"
                 } + " – diese Muskelgruppen kommen gerade zu kurz. Tausche im Plan eine Übung oder ergänze ein eigenes Workout.",
-                Brand.Orange,
+                fit.xpInk,
             )
         }
     }
@@ -199,12 +199,12 @@ private fun WeeklyCharts(data: AppData, today: LocalDate) {
     var muscle by remember { mutableStateOf(Muscle.BRUST) }
     val sessions = remember(data, today) { data.weeklySessions(today) }
     val muscleWeeks = remember(data, today) { data.weeklyMuscleSets(today) }
-    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         FitCard {
             Text("Trainings pro Woche", style = MaterialTheme.typography.titleLarge)
             Text("Ziel: ${data.settings.daysPerWeek} pro Woche", color = fit.muted, style = MaterialTheme.typography.bodySmall)
-            Spacer(Modifier.height(10.dp))
-            BarChart(sessions.map { it.second.toFloat() }, sessions.map { it.first.format(shortDate) }, color = fit.done)
+            Spacer(Modifier.height(12.dp))
+            BarChart(sessions.map { it.second.toFloat() }, sessions.map { it.first.format(shortDate) })
         }
         FitCard {
             Text("Volumen pro Muskelgruppe", style = MaterialTheme.typography.titleLarge)
@@ -213,7 +213,7 @@ private fun WeeklyCharts(data: AppData, today: LocalDate) {
             Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 for (m in Muscle.entries) ChoiceChip(m.label, m == muscle, { muscle = m })
             }
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(12.dp))
             BarChart(muscleWeeks.map { it.second[muscle] ?: 0f }, muscleWeeks.map { it.first.format(shortDate) }, valueLabel = ::fmtSets)
         }
     }
@@ -223,9 +223,9 @@ private fun WeeklyCharts(data: AppData, today: LocalDate) {
 private fun HeatmapCard(data: AppData, today: LocalDate) {
     FitCard {
         Text("Letzte 12 Wochen", style = MaterialTheme.typography.titleLarge)
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
         Heatmap(remember(data, today) { data.heatmap(today) })
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             LegendDot(dayStateColor(DayState.TRAINED), "Training")
             LegendDot(dayStateColor(DayState.REST), "Ruhetag")
@@ -243,25 +243,25 @@ private fun RecordsCard(data: AppData, onExercise: (String) -> Unit) {
     FitCard {
         Text("Persönliche Rekorde", style = MaterialTheme.typography.titleLarge)
         if (records.isEmpty()) {
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(8.dp))
             Text("Nach deinem ersten Training erscheinen hier deine Bestwerte.", color = fit.muted)
         }
         records.forEachIndexed { i, r ->
             if (i > 0) ThinDivider()
             Row(
-                Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp)).clickable { onExercise(r.exercise.id) }.padding(vertical = 10.dp),
+                Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small).pressable { onExercise(r.exercise.id) }.padding(vertical = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(r.exercise.name, style = MaterialTheme.typography.titleSmall)
-                    Text("${r.sessions}× trainiert", color = fit.muted, style = MaterialTheme.typography.bodySmall)
+                    Meta("${r.sessions}× trainiert")
                 }
                 Column(horizontalAlignment = Alignment.End) {
                     if (r.exercise.load != LoadType.NONE && r.best.maxWeightKg > 0) {
-                        Text("${ProgressionEngine.fmtKg(r.best.maxWeightKg)} kg · max. ${r.best.maxReps} Wdh.", fontWeight = FontWeight.Bold)
-                        Text("1RM ≈ ${r.best.best1Rm.roundToInt()} kg", color = fit.muted, style = MaterialTheme.typography.bodySmall)
+                        Text("${ProgressionEngine.fmtKg(r.best.maxWeightKg)} kg · max. ${r.best.maxReps} Wdh.", style = FitText.figureSmall)
+                        Meta("1RM ≈ ${r.best.best1Rm.roundToInt()} kg")
                     } else {
-                        Text("${r.best.maxReps} ${r.exercise.unit}", fontWeight = FontWeight.Bold)
+                        Text("${r.best.maxReps} ${r.exercise.unit}", style = FitText.figureSmall)
                     }
                 }
             }
@@ -292,13 +292,13 @@ private fun TestCard(data: AppData, today: LocalDate, onAdd: () -> Unit) {
             TestRow("Kniebeugen", first.squats, last.squats, "")
             if (data.tests.size > 2) {
                 Spacer(Modifier.height(8.dp))
-                LineChart(data.tests.map { it.pushups.toFloat() }, height = 100.dp, color = Brand.Red)
+                LineChart(data.tests.map { it.pushups.toFloat() }, height = 96.dp)
                 Text("Liegestütze im Verlauf", color = fit.muted, style = MaterialTheme.typography.labelMedium)
             }
             val since = today.toEpochDay() - last.epochDay
             if (since >= 30) {
                 Spacer(Modifier.height(8.dp))
-                Text("Der letzte Test ist $since Tage her – Zeit für einen neuen Vergleich!", color = Brand.Orange, style = MaterialTheme.typography.titleSmall)
+                Text("Der letzte Test ist $since Tage her. Zeit für einen neuen Vergleich", color = fit.textSecondary, style = MaterialTheme.typography.titleSmall)
             }
         }
         TextButton(onClick = onAdd) { Text("Test jetzt eintragen") }
@@ -308,12 +308,12 @@ private fun TestCard(data: AppData, today: LocalDate, onAdd: () -> Unit) {
 @Composable
 private fun TestRow(label: String, start: Int, now: Int, unit: String) {
     val diff = now - start
-    Row(Modifier.fillMaxWidth().padding(vertical = 5.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-        Text("$start$unit → ", color = fit.muted)
-        Text("$now$unit", fontWeight = FontWeight.Bold)
-        Spacer(Modifier.width(8.dp))
-        if (diff != 0) Pill(if (diff > 0) "+$diff" else "$diff", if (diff > 0) fit.done else fit.muted)
+        Meta("$start$unit → ")
+        Text("$now$unit", style = FitText.figureSmall)
+        Spacer(Modifier.width(12.dp))
+        Text(if (diff > 0) "+$diff" else if (diff < 0) "$diff" else "", style = FitText.meta, color = if (diff > 0) fit.done else fit.muted, modifier = Modifier.width(36.dp))
     }
 }
 
@@ -335,18 +335,18 @@ private fun MeasurementsCard(data: AppData, onAdd: () -> Unit) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             labels.forEachIndexed { i, l -> ChoiceChip(l, which == i, { which = i }) }
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
         if (values.isEmpty()) {
             Text("Noch keine Messung für ${labels[which]}.", color = fit.muted)
         } else {
-            Text("${String.format("%.1f", values.last().second).replace('.', ',')} cm", style = MaterialTheme.typography.headlineSmall)
+            Text("${String.format("%.1f", values.last().second).replace('.', ',')} cm", style = FitText.figure)
             if (values.size > 1) {
                 val d = values.last().second - values.first().second
                 Text("${if (d >= 0) "+" else ""}${String.format("%.1f", d).replace('.', ',')} cm seit dem Start", color = fit.muted, style = MaterialTheme.typography.bodySmall)
             }
             Spacer(Modifier.height(8.dp))
             LineChart(
-                values.map { it.second }, height = 110.dp,
+                values.map { it.second }, height = 112.dp,
                 startLabel = LocalDate.ofEpochDay(values.first().first).format(shortDate),
                 endLabel = LocalDate.ofEpochDay(values.last().first).format(shortDate),
                 valueLabel = { String.format("%.1f", it).replace('.', ',') },

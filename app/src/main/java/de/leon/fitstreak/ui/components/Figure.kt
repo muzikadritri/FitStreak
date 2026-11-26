@@ -70,27 +70,29 @@ data class FigureColors(
 )
 
 object FigureDefaults {
+    // Die Figur ist der farbige Moment der App: Körper in Text-Grau,
+    // Zielmuskel in Scheiben-Rot, unterstützende Muskeln in Scheiben-Gelb.
     val Light = FigureColors(
-        body = Color(0xFF26324D),
-        bodyFar = Color(0xFFA3AEC4),
-        ground = Color(0xFFC3CBDB),
-        primary = Color(0xFFFF4B2B),
-        secondary = Color(0xFFFFB020),
-        prop = Color(0xFF55607A),
-        propLight = Color(0xFFD5DBE8),
-        band = Color(0xFF1FA85A),
-        outline = Color(0xCCFFFFFF),
+        body = Color(0xFF171717),
+        bodyFar = Color(0xFFA8A8AD),
+        ground = Color(0xFFD4D4D8),
+        primary = Color(0xFFDC2626),
+        secondary = Color(0xFFE0A100),
+        prop = Color(0xFF5B5B61),
+        propLight = Color(0xFFE4E4E7),
+        band = Color(0xFF16A34A),
+        outline = Color(0xFFF4F4F5),
     )
     val Dark = FigureColors(
-        body = Color(0xFFE8ECF6),
-        bodyFar = Color(0xFF6E7890),
-        ground = Color(0xFF3A435A),
-        primary = Color(0xFFFF6247),
-        secondary = Color(0xFFFFC043),
-        prop = Color(0xFFAEB7CB),
-        propLight = Color(0xFF3A435A),
-        band = Color(0xFF41C879),
-        outline = Color(0xCC10141F),
+        body = Color(0xFFEDEDED),
+        bodyFar = Color(0xFF66666B),
+        ground = Color(0xFF3A3A3D),
+        primary = Color(0xFFE5484D),
+        secondary = Color(0xFFF2B600),
+        prop = Color(0xFFA1A1A6),
+        propLight = Color(0xFF303033),
+        band = Color(0xFF4CC38A),
+        outline = Color(0xFF232325),
     )
 
     @Composable

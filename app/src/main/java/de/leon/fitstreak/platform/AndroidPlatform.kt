@@ -138,6 +138,9 @@ class AndroidPlatform(private val context: Context, container: AppContainer) : P
         }
     }
 
+    override fun reducedMotion(): Boolean =
+        Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+
     override fun toast(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_LONG).show()
     }

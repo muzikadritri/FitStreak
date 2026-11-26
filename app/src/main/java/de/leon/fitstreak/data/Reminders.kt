@@ -6,7 +6,7 @@ import java.time.ZonedDateTime
 
 /** Erholungs-Tipps für Ruhetage (Heute-Screen und Erinnerung). */
 val recoveryTips = listOf(
-    "Muskeln wachsen in der Pause, nicht im Training. Genieß den Ruhetag!",
+    "Muskeln wachsen in der Pause, nicht im Training. Genieß den Ruhetag.",
     "Heute zählt Schlaf: 8 Stunden sind dein bester Muskel-Booster.",
     "Iss zu jeder Mahlzeit etwas Eiweiß – Eier, Quark, Hähnchen, Linsen.",
     "Ein Spaziergang lockert die Muskeln und beschleunigt die Erholung.",
@@ -46,7 +46,7 @@ object ReminderTexts {
         if (streak.state.current <= 0) return null
         val shield = if (streak.state.shields > 0) " (Du hast noch ${streak.state.shields} Streak-Schutz.)" else ""
         return ReminderMessage(
-            "Deine ${streak.state.current}-Tage-Streak ist in Gefahr!",
+            "Deine ${streak.state.current}-Tage-Streak ist in Gefahr",
             "Heute noch nicht trainiert: ${workout.template.name} wartet. Auch ein kurzes Training zählt.$shield",
             withSnooze = true,
         )

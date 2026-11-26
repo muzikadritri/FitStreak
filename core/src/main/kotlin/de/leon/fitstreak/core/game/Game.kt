@@ -82,7 +82,7 @@ object Achievements {
         Achievement("streak_30", "Monats-Maschine", "30 Tage Streak", AchievementIcon.FLAMME, 30),
         Achievement("streak_100", "Unaufhaltsam", "100 Tage Streak", AchievementIcon.FLAMME, 100),
         Achievement("pushups_1000", "1000 Liegestütze", "Insgesamt 1000 Liegestütze geschafft", AchievementIcon.LIEGESTUETZ),
-        Achievement("first_record", "Neuer Rekord!", "Ersten persönlichen Rekord aufgestellt", AchievementIcon.POKAL),
+        Achievement("first_record", "Neuer Rekord", "Ersten persönlichen Rekord aufgestellt", AchievementIcon.POKAL),
         Achievement("perfect_week", "Perfekte Woche", "Alle geplanten Trainings einer Woche erledigt", AchievementIcon.KALENDER),
         Achievement("all_muscles", "Rundum trainiert", "Alle Muskelgruppen in einer Woche trainiert", AchievementIcon.KOERPER),
         Achievement("volume_10t", "10 Tonnen", "10.000 kg Gesamtvolumen bewegt", AchievementIcon.GEWICHT),

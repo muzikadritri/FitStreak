@@ -20,6 +20,9 @@ interface Platform {
     fun openBatterySettings() {}
     fun sendTestNotification() {}
     fun toast(message: String) {}
+
+    /** true, wenn in den System-Einstellungen Animationen abgeschaltet sind. */
+    fun reducedMotion(): Boolean = false
     val versionName: String get() = ""
 
     /** Hält den Bildschirm an, solange das Composable sichtbar ist. */

@@ -1,13 +1,24 @@
 package de.leon.fitstreak.ui
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -15,6 +26,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -36,6 +48,8 @@ import de.leon.fitstreak.AppContainer
 import de.leon.fitstreak.platform.AndroidPlatform
 import de.leon.fitstreak.ui.components.FitIcon
 import de.leon.fitstreak.ui.components.FitIconView
+import de.leon.fitstreak.ui.components.ThinDivider
+import de.leon.fitstreak.ui.components.pressable
 import de.leon.fitstreak.ui.library.ExerciseDetailScreen
 import de.leon.fitstreak.ui.library.LibraryScreen
 import de.leon.fitstreak.ui.onboarding.OnboardingScreen
@@ -45,6 +59,8 @@ import de.leon.fitstreak.ui.profile.ProfileScreen
 import de.leon.fitstreak.ui.progress.ProgressScreen
 import de.leon.fitstreak.ui.settings.SettingsScreen
 import de.leon.fitstreak.ui.tips.TipsScreen
+import de.leon.fitstreak.ui.theme.Motion
+import de.leon.fitstreak.ui.theme.fit
 import de.leon.fitstreak.ui.today.TodayScreen
 import de.leon.fitstreak.ui.workout.WorkoutScreen
 import de.leon.fitstreak.ui.workout.WorkoutViewModel
@@ -83,9 +99,34 @@ fun FitStreakRoot(container: AppContainer, openTodaySignal: Int) {
 
     CompositionLocalProvider(LocalPlatform provides platform) {
         when {
-            !data.loaded -> Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background))
+            !data.loaded -> Box(Modifier.fillMaxSize().background(fit.bg))
             !data.settings.onboardingDone -> OnboardingScreen(onFinish = { vm.completeOnboarding(it) })
             else -> MainNavigation(vm, container, openTodaySignal)
+        }
+    }
+}
+
+private fun isTab(route: String?): Boolean = tabs.any { it.route == route }
+
+/** Ruhige Tab-Leiste: Haarlinie oben, aktiver Tab in Textfarbe, der Rest gedämpft. */
+@Composable
+private fun BottomTabs(currentRoute: String?, onSelect: (String) -> Unit) {
+    Column(Modifier.fillMaxWidth().background(fit.bg)) {
+        ThinDivider()
+        Row(Modifier.fillMaxWidth().navigationBarsPadding().height(64.dp)) {
+            for (tab in tabs) {
+                val selected = currentRoute == tab.route
+                val color by animateColorAsState(if (selected) fit.text else fit.muted, Motion.fast(), label = "tab")
+                Column(
+                    Modifier.weight(1f).fillMaxHeight().pressable(scale = 0.94f) { onSelect(tab.route) },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                ) {
+                    FitIconView(tab.icon, tint = color, size = 22.dp)
+                    Spacer(Modifier.height(4.dp))
+                    Text(tab.label, color = color, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                }
+            }
         }
     }
 }
@@ -115,24 +156,32 @@ private fun MainNavigation(vm: AppViewModel, container: AppContainer, openTodayS
     }
 
     Scaffold(
-        containerColor = MaterialTheme.colorScheme.background,
+        containerColor = fit.bg,
+        contentColor = fit.text,
         contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        bottomBar = {
-            if (showTabs) {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surface, tonalElevation = 0.dp) {
-                    for (tab in tabs) {
-                        NavigationBarItem(
-                            selected = currentRoute == tab.route,
-                            onClick = { nav.openTab(tab.route) },
-                            icon = { FitIconView(tab.icon) },
-                            label = { Text(tab.label) },
-                        )
-                    }
-                }
-            }
-        },
+        bottomBar = { if (showTabs) BottomTabs(currentRoute) { nav.openTab(it) } },
     ) { inner ->
-        NavHost(nav, startDestination = Routes.TODAY, modifier = Modifier.padding(bottom = inner.calculateBottomPadding())) {
+        NavHost(
+            nav,
+            startDestination = Routes.TODAY,
+            modifier = Modifier.padding(bottom = inner.calculateBottomPadding()),
+            // Tab-Wechsel passieren ständig: nur ein kurzes Überblenden.
+            // In die Tiefe (Übung, Training, Plan) gleitet der neue Screen ein Stück von rechts herein
+            // und geht auf demselben Weg zurück.
+            enterTransition = {
+                if (isTab(initialState.destination.route) && isTab(targetState.destination.route)) fadeIn(Motion.fast())
+                else fadeIn(Motion.enter()) + slideInHorizontally(Motion.enter()) { it / 12 }
+            },
+            exitTransition = { fadeOut(Motion.fast()) },
+            popEnterTransition = {
+                if (isTab(initialState.destination.route) && isTab(targetState.destination.route)) fadeIn(Motion.fast())
+                else fadeIn(Motion.base())
+            },
+            popExitTransition = {
+                if (isTab(initialState.destination.route) && isTab(targetState.destination.route)) fadeOut(Motion.fast())
+                else fadeOut(Motion.fast()) + slideOutHorizontally(Motion.base()) { it / 12 }
+            },
+        ) {
             composable(Routes.TODAY) {
                 TodayScreen(
                     vm,

@@ -114,8 +114,10 @@ data class ExerciseAnimation(
 }
 
 fun easeInOut(x: Float): Float {
+    // „Smootherstep“: Geschwindigkeit UND Beschleunigung sind an beiden Enden null –
+    // die Figur setzt weich an und kommt weich zum Stehen.
     val t = x.coerceIn(0f, 1f)
-    return t * t * (3f - 2f * t)
+    return t * t * t * (t * (6f * t - 15f) + 10f)
 }
 
 private fun secLabel(prefix: String, s: Float): String {

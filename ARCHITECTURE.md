@@ -156,6 +156,20 @@ Ein Renderer für alle Übungen (`ui/components/FigureRenderer.kt`, Compose Canv
 - Seiten- oder Frontansicht, Bodenlinie, ferne Gliedmaßen heller, Requisiten
   (Hantel, Stuhl/Bank, Klimmzugstange, Band), Zielmuskeln farbig hervorgehoben.
 
+### Gestaltung und Bewegung
+
+- **Ruhige Flächen, ein Akzent:** neutrale Grautöne für Hintergrund, Karten und Text. Die Farben der
+  Hantelscheiben tragen nur Bedeutung: Blau = Aktion/Auswahl, Rot = Streak, Gelb = XP, Grün = erledigt.
+- **Signatur:** die Hantelscheibe als Statuszeichen (`PlateMark`) – Wochenleiste als Hantelstange,
+  Sätze, Legenden, Abzeichen.
+- **Schrift:** IBM Plex Sans (400/500/600) und IBM Plex Mono für Zahlen, in der App eingebettet.
+- **Abstände** im 4-dp-Raster, Radien gestaffelt (Chips 8, Buttons 12, Karten 16, Dialoge 20).
+- **Bewegung** (`ui/theme/Theme.kt`, `Motion`): eine Ease-out-Kurve und vier Dauern (120/160/220/300 ms).
+  Animiert wird nur, was etwas erklärt: Druck-Feedback, Auswahl, Auf-/Zuklappen der Übungskarte,
+  Screen-Wechsel in die Tiefe, Zähler in der Zusammenfassung. Timer-Ringe laufen pro Frame.
+  Häufige Aktionen (Tab-Wechsel) blenden nur kurz über; bei abgeschalteten System-Animationen
+  entfallen Konfetti und Auftritt.
+
 ## 9. Benachrichtigungen (`notify`)
 
 ```

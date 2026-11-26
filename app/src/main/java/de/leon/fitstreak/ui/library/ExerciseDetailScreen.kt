@@ -1,7 +1,12 @@
 package de.leon.fitstreak.ui.library
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,8 +21,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -31,7 +34,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import de.leon.fitstreak.core.exercises.ExerciseLibrary
 import de.leon.fitstreak.core.model.Exercise
@@ -47,10 +49,15 @@ import de.leon.fitstreak.ui.components.FitIcon
 import de.leon.fitstreak.ui.components.FitIconView
 import de.leon.fitstreak.ui.components.LegendDot
 import de.leon.fitstreak.ui.components.LineChart
+import de.leon.fitstreak.ui.components.Meta
 import de.leon.fitstreak.ui.components.Pill
+import de.leon.fitstreak.ui.components.PlateMark
+import de.leon.fitstreak.ui.components.hairline
+import de.leon.fitstreak.ui.components.pressable
 import de.leon.fitstreak.ui.components.ScreenScaffold
 import de.leon.fitstreak.ui.components.StaticExerciseFigure
-import de.leon.fitstreak.ui.theme.Brand
+import de.leon.fitstreak.ui.theme.FitText
+import de.leon.fitstreak.ui.theme.Motion
 import de.leon.fitstreak.ui.theme.fit
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -61,21 +68,27 @@ fun AnimationPlayer(e: Exercise, modifier: Modifier = Modifier) {
     var playing by remember(e.id) { mutableStateOf(true) }
     var slow by remember(e.id) { mutableStateOf(false) }
     var phase by remember(e.id) { mutableIntStateOf(0) }
+    // Tempo-Wechsel gleitet, statt zu springen
+    // Pause bremst sanft ab und läuft sanft wieder an
+    val speed by animateFloatAsState(if (!playing) 0f else if (slow) 0.35f else 1f, Motion.enter(), label = "speed")
     Column(modifier) {
         FigureBox(Modifier.fillMaxWidth().height(280.dp)) {
-            ExerciseFigure(e, Modifier.fillMaxSize().padding(10.dp), playing = playing, speed = if (slow) 0.35f else 1f, onPhase = { phase = it })
+            ExerciseFigure(e, Modifier.fillMaxSize().padding(12.dp), playing = playing || speed > 0.01f, speed = speed, onPhase = { phase = it })
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {
-            // Phasen der Bewegung – die aktuelle ist hervorgehoben
-            Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                val labels = e.animation.phases.map { it.label }
-                val current = labels.getOrNull(phase) ?: ""
-                Box(Modifier.clip(RoundedCornerShape(50)).background(MaterialTheme.colorScheme.primary).padding(horizontal = 14.dp, vertical = 8.dp)) {
-                    Text(current, color = MaterialTheme.colorScheme.onPrimary, style = MaterialTheme.typography.labelLarge, maxLines = 1)
-                }
+            // Aktuelle Phase der Bewegung – der Text blendet beim Wechsel weich über
+            Row(Modifier.weight(1f), verticalAlignment = Alignment.CenterVertically) {
+                PlateMark(fit.accent, size = 12.dp)
+                Spacer(Modifier.width(8.dp))
+                val label = e.animation.phases.getOrNull(phase)?.label ?: ""
+                AnimatedContent(
+                    targetState = label,
+                    transitionSpec = { fadeIn(Motion.fast()) togetherWith fadeOut(Motion.fast()) },
+                    label = "phase",
+                ) { text -> Text(text, style = MaterialTheme.typography.titleSmall, maxLines = 1) }
             }
-            ControlButton(if (slow) "Zeitlupe an" else "Zeitlupe", FitIcon.SNAIL, active = slow) { slow = !slow }
+            ControlButton("Zeitlupe", FitIcon.SNAIL, active = slow) { slow = !slow }
             Spacer(Modifier.width(8.dp))
             ControlButton(if (playing) "Pause" else "Weiter", if (playing) FitIcon.PAUSE else FitIcon.PLAY, active = !playing) { playing = !playing }
         }
@@ -84,14 +97,16 @@ fun AnimationPlayer(e: Exercise, modifier: Modifier = Modifier) {
 
 @Composable
 private fun ControlButton(label: String, icon: FitIcon, active: Boolean, onClick: () -> Unit) {
-    val bg = if (active) Brand.Orange else fit.cardMuted
-    val fg = if (active) Color.White else MaterialTheme.colorScheme.onSurface
+    val shape = MaterialTheme.shapes.small
+    val bg by animateColorAsState(if (active) fit.text else fit.cardMuted, Motion.fast(), label = "ctl")
+    val fg by animateColorAsState(if (active) fit.bg else fit.text, Motion.fast(), label = "ctlText")
     Row(
-        Modifier.clip(RoundedCornerShape(50)).background(bg).clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier.pressable(scale = 0.96f, onClick = onClick).clip(shape).background(bg)
+            .let { if (active) it else it.hairline(shape) }.height(36.dp).padding(horizontal = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         FitIconView(icon, tint = fg, size = 16.dp)
-        Spacer(Modifier.width(6.dp))
+        Spacer(Modifier.width(8.dp))
         Text(label, color = fg, style = MaterialTheme.typography.labelLarge, maxLines = 1)
     }
 }
@@ -108,30 +123,27 @@ fun ExerciseDetailScreen(exerciseId: String, data: AppData, onBack: () -> Unit, 
     ScreenScaffold(e.name, onBack) { pad ->
         Column(
             Modifier.fillMaxSize().padding(pad).verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             AnimationPlayer(e)
-            Text(e.summary, style = MaterialTheme.typography.bodyLarge)
+            Text(e.summary.trimEnd('.'), style = MaterialTheme.typography.bodyLarge, color = fit.textSecondary)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Pill(e.difficulty.label, difficultyColor(e.difficulty))
-                Pill(equipmentText(e), fit.cardMuted, contentColor = MaterialTheme.colorScheme.onSurface)
+                Pill(equipmentText(e), fit.cardMuted)
                 Pill(
                     if (e.isTimed) "${e.repRange.first}–${e.repRange.last} Sek." else "${e.repRange.first}–${e.repRange.last} Wdh." + if (e.perSide) " je Seite" else "",
-                    fit.cardMuted, contentColor = MaterialTheme.colorScheme.onSurface,
+                    fit.cardMuted,
                 )
-                Pill("${e.restSec} Sek. Pause", fit.cardMuted, contentColor = MaterialTheme.colorScheme.onSurface)
+                Pill("${e.restSec} Sek. Pause", fit.cardMuted)
             }
 
             FitCard {
                 Text("So geht's", style = MaterialTheme.typography.titleLarge)
                 e.steps.forEachIndexed { i, step ->
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(12.dp))
                     Row(verticalAlignment = Alignment.Top) {
-                        Box(Modifier.size(28.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary), contentAlignment = Alignment.Center) {
-                            Text("${i + 1}", color = MaterialTheme.colorScheme.onPrimary, fontWeight = FontWeight.Bold)
-                        }
-                        Spacer(Modifier.width(12.dp))
-                        Text(step, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f).padding(top = 2.dp))
+                        Text("${i + 1}", style = FitText.figureSmall, color = fit.muted, modifier = Modifier.width(24.dp).padding(top = 2.dp))
+                        Text(step, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                     }
                 }
             }
@@ -141,10 +153,7 @@ fun ExerciseDetailScreen(exerciseId: String, data: AppData, onBack: () -> Unit, 
                 for (m in e.mistakes) {
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.Top) {
-                        Box(Modifier.padding(top = 2.dp).size(22.dp).clip(CircleShape).background(fit.streak.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
-                            Text("✕", color = fit.streak, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
-                        }
-                        Spacer(Modifier.width(12.dp))
+                        Box(Modifier.width(24.dp).padding(top = 4.dp)) { FitIconView(FitIcon.CLOSE, tint = fit.streak, size = 16.dp) }
                         Text(m, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
                     }
                 }
@@ -152,7 +161,7 @@ fun ExerciseDetailScreen(exerciseId: String, data: AppData, onBack: () -> Unit, 
 
             FitCard {
                 Text("Atmung", style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 Text(e.breathing, style = MaterialTheme.typography.bodyLarge)
             }
 
@@ -166,7 +175,7 @@ fun ExerciseDetailScreen(exerciseId: String, data: AppData, onBack: () -> Unit, 
                     },
                     color = fit.muted,
                 )
-                Spacer(Modifier.height(10.dp))
+                Spacer(Modifier.height(12.dp))
                 BodyMap(
                     colorFor = { m -> if (m in e.primary) figure.primary else if (m in e.secondary) figure.secondary else null },
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 36.dp),
@@ -182,22 +191,22 @@ fun ExerciseDetailScreen(exerciseId: String, data: AppData, onBack: () -> Unit, 
             val ladder = e.ladder?.let { ExerciseLibrary.ladder(it) }.orEmpty()
             if (ladder.size > 1) {
                 FitCard {
-                    Text("Varianten: leichter ↔ schwerer", style = MaterialTheme.typography.titleLarge)
+                    Text("Varianten, leicht bis schwer", style = MaterialTheme.typography.titleLarge)
                     for (v in ladder) {
                         Spacer(Modifier.height(8.dp))
                         Row(
-                            Modifier.fillMaxWidth().clip(RoundedCornerShape(14.dp))
-                                .background(if (v.id == e.id) MaterialTheme.colorScheme.primaryContainer else Color.Transparent)
-                                .clickable(enabled = v.id != e.id) { onExercise(v.id) }.padding(6.dp),
+                            Modifier.fillMaxWidth().clip(MaterialTheme.shapes.small)
+                                .background(if (v.id == e.id) fit.cardMuted else Color.Transparent)
+                                .pressable(enabled = v.id != e.id) { onExercise(v.id) }.padding(8.dp),
                             verticalAlignment = Alignment.CenterVertically,
                         ) {
-                            FigureBox(Modifier.size(52.dp)) { StaticExerciseFigure(v, v.animation.cycleSeconds * 0.3f, Modifier.fillMaxSize().padding(3.dp)) }
+                            FigureBox(Modifier.size(52.dp)) { StaticExerciseFigure(v, v.animation.cycleSeconds * 0.3f, Modifier.fillMaxSize().padding(4.dp)) }
                             Spacer(Modifier.width(12.dp))
                             Column(Modifier.weight(1f)) {
                                 Text(v.name, style = MaterialTheme.typography.titleSmall)
-                                Text("Stufe ${v.ladderRank} · ${v.difficulty.label}", color = fit.muted, style = MaterialTheme.typography.bodySmall)
+                                Meta("Stufe ${v.ladderRank} · ${v.difficulty.label}")
                             }
-                            if (v.id == e.id) Pill("diese", MaterialTheme.colorScheme.primary)
+                            if (v.id == e.id) PlateMark(fit.accent, size = 12.dp)
                         }
                     }
                 }
@@ -215,17 +224,17 @@ fun ExerciseDetailScreen(exerciseId: String, data: AppData, onBack: () -> Unit, 
                         Text(
                             if (weighted) "Rekord: ${ProgressionEngine.fmtKg(best.maxWeightKg)} kg · geschätztes 1RM ${ProgressionEngine.fmtKg(Math.round(best.best1Rm * 10) / 10.0)} kg"
                             else "Rekord: ${best.maxReps} ${e.unit}",
-                            color = MaterialTheme.colorScheme.primary, style = MaterialTheme.typography.titleSmall,
+                            color = fit.textSecondary, style = FitText.meta,
                         )
                     }
-                    Spacer(Modifier.height(10.dp))
+                    Spacer(Modifier.height(12.dp))
                     val fmt = DateTimeFormatter.ofPattern("d.M.")
                     LineChart(
                         values = history.map { if (weighted) it.best1Rm.toFloat() else it.maxReps.toFloat() },
                         startLabel = LocalDate.ofEpochDay(history.first().epochDay).format(fmt),
                         endLabel = LocalDate.ofEpochDay(history.last().epochDay).format(fmt),
                     )
-                    Text(if (weighted) "Geschätztes 1RM (kg) pro Training" else "Beste ${e.unit} pro Training", color = fit.muted, style = MaterialTheme.typography.labelMedium)
+                    Meta(if (weighted) "Geschätztes 1RM in kg pro Training" else "Beste ${e.unit} pro Training")
                 }
             }
             Spacer(Modifier.height(16.dp))

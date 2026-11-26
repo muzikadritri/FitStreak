@@ -1,4 +1,4 @@
-# FitStreak 💪🔥
+# FitStreak
 
 Native Android-App für Muskelaufbau zu Hause – komplett offline, ohne Konto, ohne Werbung.
 Kotlin · Jetpack Compose · Material 3 · Room · DataStore.
