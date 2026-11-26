@@ -279,7 +279,8 @@ private fun RestDayCard(data: AppData, today: LocalDate, trainedToday: Boolean, 
         Text(recoveryTips[(today.dayOfYear) % recoveryTips.size], style = MaterialTheme.typography.bodyLarge, color = fit.textSecondary)
         if (!trainedToday) {
             Spacer(Modifier.height(8.dp))
-            LocalPlatform.current.ArtImage(Art.REST, Modifier.fillMaxWidth().height(104.dp))
+            Spacer(Modifier.height(4.dp))
+            LocalPlatform.current.ArtImage(Art.REST, Modifier.fillMaxWidth().height(148.dp).clip(MaterialTheme.shapes.medium))
         }
         Spacer(Modifier.height(12.dp))
         ThinDivider()

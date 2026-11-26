@@ -9,8 +9,23 @@ enum class Haptic { TICK, SUCCESS, ALERT }
 
 enum class Sound { TICK, GO, DONE }
 
-/** Bilder der 3D-Figur (freigestellt, für helles und dunkles Design). */
-enum class Art { WELCOME, REST, TIPS, EMPTY }
+/**
+ * Mitgelieferte Bilder. [file] ist der Name unter `res/drawable-nodpi`. Fotos füllen ihren Platz
+ * (Zuschnitt), die freigestellte Figur wird eingepasst.
+ */
+enum class Art(val file: String, val photo: Boolean = true) {
+    WELCOME("photo_welcome"),
+    REST("photo_rest"),
+    TIPS("photo_tips"),
+    GROW("photo_grow"),
+    PROGRESS("photo_progress"),
+    SIXPACK("photo_sixpack"),
+    CALM("photo_calm"),
+    FOOD("photo_food"),
+
+    /** Rendering der 3D-Figur für leere Diagramme. */
+    EMPTY("art_empty", photo = false),
+}
 
 /**
  * Alles, was die Oberfläche vom Android-System braucht. Die Implementierung liegt in `platform/`,

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -30,16 +31,18 @@ import de.leon.fitstreak.ui.components.FitIconView
 import de.leon.fitstreak.ui.components.ScreenScaffold
 import de.leon.fitstreak.ui.theme.fit
 
-class Tip(val icon: FitIcon, val title: String, val text: String)
+class Tip(val icon: FitIcon, val title: String, val text: String, val photo: Art? = null)
 
 val tips = listOf(
     Tip(
         FitIcon.DUMBBELL, "Wie Muskeln wachsen",
         "Muskelaufbau braucht vier Dinge: einen Trainingsreiz, Erholung, genug Eiweiß und Schlaf. Im Training setzt du nur den Reiz – gewachsen wird danach. Fehlt einer der vier Bausteine, bleibt der Fortschritt aus.",
+        photo = Art.GROW,
     ),
     Tip(
         FitIcon.CHART, "Progressive Steigerung",
         "Dein Körper passt sich nur an, wenn die Anforderung steigt. Deshalb schlägt FitStreak nach und nach mehr Wiederholungen, mehr Gewicht, schwerere Varianten oder ein langsameres Tempo vor. Kleine Schritte, aber stetig.",
+        photo = Art.PROGRESS,
     ),
     Tip(
         FitIcon.CHECK, "Saubere Technik vor Gewicht",
@@ -48,14 +51,17 @@ val tips = listOf(
     Tip(
         FitIcon.FLAME, "Sixpack = Bauchtraining + wenig Körperfett",
         "Bauchmuskeln hat jeder – sichtbar werden sie erst bei niedrigem Körperfettanteil. Bauchtraining macht sie kräftig und dick, die Ernährung legt sie frei. Du brauchst kein Kalorienzählen: viel Eiweiß, wenig Zuckergetränke, genug Schlaf und regelmäßiges Training wirken zusammen.",
+        photo = Art.SIXPACK,
     ),
     Tip(
         FitIcon.MOON, "Ruhetage sind Trainingstage",
         "Nach dem Training ist der Muskel erst einmal schwächer. In den 24–48 Stunden danach repariert und verstärkt ihn der Körper. Wer jeden Tag dieselben Muskeln trainiert, unterbricht genau das. Darum brechen Ruhetage deine Streak nicht.",
+        photo = Art.CALM,
     ),
     Tip(
         FitIcon.EGG, "Eiweiß und genug Essen",
         "Muskeln bestehen aus Eiweiß. Iss zu jeder Mahlzeit eine Portion: Eier, Quark, Joghurt, Hähnchen, Fisch, Linsen, Bohnen oder Tofu. Und iss insgesamt genug – wer zu wenig isst, kann kaum Muskeln aufbauen.",
+        photo = Art.FOOD,
     ),
     Tip(
         FitIcon.CALENDAR, "Geduld: denk in Monaten",
@@ -80,14 +86,12 @@ fun TipsScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        "Kurz erklärt, was beim Muskelaufbau wirklich zählt",
-                        style = MaterialTheme.typography.bodyLarge, color = fit.textSecondary, modifier = Modifier.weight(1f),
-                    )
-                    Spacer(Modifier.width(12.dp))
-                    LocalPlatform.current.ArtImage(Art.TIPS, Modifier.width(96.dp).height(132.dp))
-                }
+                LocalPlatform.current.ArtImage(Art.TIPS, Modifier.fillMaxWidth().height(152.dp).clip(MaterialTheme.shapes.large))
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Kurz erklärt, was beim Muskelaufbau wirklich zählt",
+                    style = MaterialTheme.typography.bodyLarge, color = fit.textSecondary,
+                )
             }
             items(tips) { tip -> TipCard(tip) }
         }
@@ -97,6 +101,10 @@ fun TipsScreen(onBack: () -> Unit) {
 @Composable
 fun TipCard(tip: Tip) {
     FitCard {
+        if (tip.photo != null) {
+            LocalPlatform.current.ArtImage(tip.photo, Modifier.fillMaxWidth().height(132.dp).clip(MaterialTheme.shapes.small))
+            Spacer(Modifier.height(12.dp))
+        }
         Row(verticalAlignment = Alignment.CenterVertically) {
             FitIconView(tip.icon, tint = fit.textSecondary, size = 20.dp)
             Spacer(Modifier.width(12.dp))

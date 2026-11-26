@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Rendert die freigestellten Bilder der 3D-Figur (Onboarding, Ruhetag, Tipps, leere Diagramme)
+# Rendert das freigestellte Bild der 3D-Figur (für leere Diagramme)
 # mit dem Software-Renderer aus tools/desktop-check und legt sie als WebP in die App.
 set -euo pipefail
 cd "$(dirname "$0")/../desktop-check"

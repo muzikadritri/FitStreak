@@ -85,6 +85,7 @@ sollte den Keystore vorher durch ein GitHub-Secret ersetzen.
 ## Fremdmaterial
 
 - Schrift **IBM Plex** (SIL Open Font License) – `licenses/IBM-Plex-OFL.txt`
+- **Fotos** von Unsplash (Unsplash-Lizenz) in Onboarding, Ruhetag-Karte und Tipps – `licenses/Fotos.md`
 - 3D-Engine **Filament** von Google (Apache License 2.0)
 - 3D-Mannequin **„X Bot“** von Adobe Mixamo, bezogen aus den three.js-Beispielen – Details in
   `licenses/3D-Figur.md`

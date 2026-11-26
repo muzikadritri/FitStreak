@@ -239,7 +239,7 @@ private class Soft3D(assets: File) {
 }
 
 /**
- * art <outDir> – freigestellte Bilder der 3D-Figur für die App (Onboarding, Tipps, leere Zustände).
+ * art <outDir> – freigestelltes Bild der 3D-Figur für die App (leere Diagramme).
  * Die Ergebnisse liegen unter app/src/main/res/drawable-nodpi/.
  */
 fun art(args: List<String>) {
@@ -247,9 +247,6 @@ fun art(args: List<String>) {
     val soft = Soft3D(File("../../../app/src/main/assets/figure3d"))
     class Shot(val name: String, val id: String, val at: Float, val yaw: Float, val pitch: Float, val w: Int, val h: Int, val zoom: Float = 1f, val paint: Boolean = true)
     val shots = listOf(
-        Shot("art_welcome", "liegestuetze", 0.0f, -4f, 2f, 1536, 896, 1.18f),
-        Shot("art_tips", "bizeps_curls", 0.33f, 22f, -2f, 900, 900, 0.88f),
-        Shot("art_rest", "glute_bridge", 0.0f, -6f, 4f, 1440, 704, 1.2f, paint = false),
         Shot("art_empty", "kniebeugen", 0.6f, 28f, 0f, 900, 720, 0.88f),
     )
     for (s in shots.filter { args.size < 2 || it.name in args.drop(1) }) {

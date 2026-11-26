@@ -200,8 +200,7 @@ fun OnboardingScreen(onFinish: (OnboardingInput) -> Unit) {
                 when (s) {
                     0 -> {
                         Spacer(Modifier.height(16.dp))
-                        // Die Figur aus den Übungen begrüßt gleich hier
-                        LocalPlatform.current.ArtImage(Art.WELCOME, Modifier.fillMaxWidth().height(168.dp))
+                        LocalPlatform.current.ArtImage(Art.WELCOME, Modifier.fillMaxWidth().height(196.dp).clip(MaterialTheme.shapes.large))
                         Spacer(Modifier.height(20.dp))
                         Text("Willkommen bei FitStreak", style = MaterialTheme.typography.headlineMedium)
                         Spacer(Modifier.height(8.dp))

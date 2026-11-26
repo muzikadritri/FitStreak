@@ -186,12 +186,20 @@ class AndroidPlatform(private val context: Context, container: AppContainer) : P
     @Composable
     override fun ArtImage(art: Art, modifier: Modifier) {
         val id = when (art) {
-            Art.WELCOME -> R.drawable.art_welcome
-            Art.REST -> R.drawable.art_rest
-            Art.TIPS -> R.drawable.art_tips
+            Art.WELCOME -> R.drawable.photo_welcome
+            Art.REST -> R.drawable.photo_rest
+            Art.TIPS -> R.drawable.photo_tips
+            Art.GROW -> R.drawable.photo_grow
+            Art.PROGRESS -> R.drawable.photo_progress
+            Art.SIXPACK -> R.drawable.photo_sixpack
+            Art.CALM -> R.drawable.photo_calm
+            Art.FOOD -> R.drawable.photo_food
             Art.EMPTY -> R.drawable.art_empty
         }
-        Image(painterResource(id), contentDescription = null, modifier = modifier, contentScale = ContentScale.Fit)
+        Image(
+            painterResource(id), contentDescription = null, modifier = modifier,
+            contentScale = if (art.photo) ContentScale.Crop else ContentScale.Fit,
+        )
     }
 
     @Composable

@@ -31,9 +31,9 @@ private object PreviewPlatform : Platform {
     @Composable
     override fun ArtImage(art: Art, modifier: Modifier) {
         val bitmap = remember(art) {
-            File("../../../app/src/main/res/drawable-nodpi/art_${art.name.lowercase()}.webp").inputStream().use { loadImageBitmap(it) }
+            File("../../../app/src/main/res/drawable-nodpi/${art.file}.webp").inputStream().use { loadImageBitmap(it) }
         }
-        Image(bitmap, contentDescription = null, modifier = modifier, contentScale = ContentScale.Fit)
+        Image(bitmap, contentDescription = null, modifier = modifier, contentScale = if (art.photo) ContentScale.Crop else ContentScale.Fit)
     }
 }
 
@@ -67,7 +67,7 @@ fun screens(out: File, only: Set<String>) = runBlocking {
     if (want("settings")) shot(out, "settings", height = 2600) { de.leon.fitstreak.ui.settings.SettingsScreen(vm) {} }
     if (want("plan")) shot(out, "plan", height = 1700) { de.leon.fitstreak.ui.plan.PlanScreen(vm, {}, {}, {}) }
     if (want("planedit")) shot(out, "planedit", height = 1500) { de.leon.fitstreak.ui.plan.PlanEditScreen(vm, vm.data.value.rotation.first().id, {}, {}) }
-    if (want("tips")) shot(out, "tips", height = 1400) { de.leon.fitstreak.ui.tips.TipsScreen {} }
+    if (want("tips")) shot(out, "tips", height = 2300) { de.leon.fitstreak.ui.tips.TipsScreen {} }
     if (want("onboarding")) shot(out, "onboarding") { de.leon.fitstreak.ui.onboarding.OnboardingScreen {} }
     if (want("onboarding_dark")) shot(out, "onboarding_dark", dark = true) { de.leon.fitstreak.ui.onboarding.OnboardingScreen {} }
     if (want("rest")) {
