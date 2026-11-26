@@ -25,22 +25,26 @@ fun paintFor(material: String, primary: Set<BodyPart>, secondary: Set<BodyPart>)
     }
 }
 
-/** Kamera, die um die Figur kreist. [yaw] 0° = von vorn, -90° = von der rechten Körperseite. */
-class Orbit(val target: V3, val radius: Float, val yaw: Float, val pitch: Float) {
+/**
+ * Kamera, die um die Figur kreist. [yaw] 0° = von vorn, -90° = von der rechten Körperseite.
+ * [halfWidth]/[halfHeight]: halbe Ausdehnung der ganzen Bewegung um [target].
+ */
+class Orbit(val target: V3, val halfWidth: Float, val halfHeight: Float, val yaw: Float, val pitch: Float) {
     fun eye(distance: Float): V3 {
         val y = Math.toRadians(yaw.toDouble())
         val p = Math.toRadians(pitch.toDouble())
         return target + V3((cos(p) * sin(y)).toFloat(), sin(p).toFloat(), (cos(p) * cos(y)).toFloat()) * distance
     }
 
-    /** Abstand, bei dem die ganze Bewegung ins Bild passt. */
+    /** Abstand, bei dem die ganze Bewegung ins Bild passt – egal ob die Ansicht breit oder hoch ist. */
     fun distance(fovYDeg: Float, aspect: Float): Float {
-        val half = Math.toRadians(fovYDeg / 2.0)
-        val halfX = kotlin.math.atan(tan(half) * aspect)
-        return (radius / sin(minOf(half, halfX))).toFloat()
+        val ty = tan(Math.toRadians(fovYDeg / 2.0)).toFloat()
+        val tx = ty * aspect
+        // Zuschlag: etwas Rand, und der vordere Teil der Szene liegt näher an der Kamera
+        return max(halfWidth / tx, halfHeight / ty) * 1.1f + 0.45f
     }
 
-    fun with(yaw: Float = this.yaw, pitch: Float = this.pitch) = Orbit(target, radius, yaw, pitch.coerceIn(-5f, 70f))
+    fun with(yaw: Float = this.yaw, pitch: Float = this.pitch) = Orbit(target, halfWidth, halfHeight, yaw, pitch.coerceIn(-5f, 70f))
 
     companion object {
         const val FOV = 28f
@@ -53,10 +57,7 @@ class Orbit(val target: V3, val radius: Float, val yaw: Float, val pitch: Float)
             val cy = (b.maxY + lift) / 2f
             val side = anim.view == View.SIDE
             val target = if (side) V3(0f, cy, cx) else V3(cx, cy, 0f)
-            // Kugel um die Bewegung; die Figur ist quer zur Bildebene etwa schulterbreit
-            val half = max(b.width / 2f, 0.35f)
-            val radius = kotlin.math.sqrt(half * half + cy * cy + 0.05f) * 0.86f
-            return Orbit(target, radius, yaw = if (side) -62f else -24f, pitch = 12f)
+            return Orbit(target, max(b.width / 2f, 0.45f), max(cy, 0.42f), yaw = if (side) -62f else -24f, pitch = 12f)
         }
     }
 }

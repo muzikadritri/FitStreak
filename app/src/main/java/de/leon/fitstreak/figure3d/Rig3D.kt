@@ -375,7 +375,11 @@ class Rig3D(private val skeleton: FigureSkeleton) {
         // Matte unter der Figur
         val b = anim.bounds
         val center = rigPoint((b.minX + b.maxX) / 2f, 0f).copy(y = -0.006f)
-        out += Prop3(Prop3Kind.CYLINDER, Mat4.alongAxis(center, V3.Y, 0.012f, maxOf(1.7f, b.width + 0.8f)), Prop3Role.MAT)
+        // oval: so lang wie die Bewegung, quer dazu nur etwas breiter als die Figur
+        val along = maxOf(1.5f, b.width + 0.6f)
+        val across = 1.3f
+        val matShape = if (side) M3(V3.X * across, V3.Y * 0.012f, V3.Z * along) else M3(V3.X * along, V3.Y * 0.012f, V3.Z * across)
+        out += Prop3(Prop3Kind.CYLINDER, Mat4.compose(matShape, center), Prop3Role.MAT)
 
         for (prop in anim.props) when (prop) {
             is Dumbbell -> {

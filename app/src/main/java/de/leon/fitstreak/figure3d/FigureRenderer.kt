@@ -356,7 +356,22 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
         this.anim = anim
         this.primary = primary
         this.secondary = secondary
+        aimSun(anim)
         applyColors()
+    }
+
+    /**
+     * Das Hauptlicht kommt von schräg oben hinter der Start-Kamera der Übung: Die Seite, die man zuerst
+     * sieht, ist die beleuchtete. Beim Drehen bleibt das Licht stehen – so kommt die Form heraus.
+     */
+    private fun aimSun(anim: ExerciseAnimation) {
+        val base = Orbit.forAnimation(anim, runtime.rig.lift)
+        val forward = (base.target - base.eye(1f)).normalized()
+        val right = (forward cross V3.Y).normalized(V3.X)
+        val up = right cross forward
+        val d = (right * 0.45f - up * 0.75f + forward * 0.6f).normalized()
+        val lights = engine.lightManager
+        lights.setDirection(lights.getInstance(sun), d.x, d.y, d.z)
     }
 
     /** Blickwinkel relativ zur Startansicht der Übung (Grad). */
@@ -365,7 +380,7 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
         val base = Orbit.forAnimation(a, runtime.rig.lift)
         val next = base.with(yaw = base.yaw + yawOffset, pitch = base.pitch + pitchOffset)
         val old = orbit
-        if (old == null || old.yaw != next.yaw || old.pitch != next.pitch || old.target != next.target || old.radius != next.radius) {
+        if (old == null || old.yaw != next.yaw || old.pitch != next.pitch || old.target != next.target || old.halfWidth != next.halfWidth || old.halfHeight != next.halfHeight) {
             orbit = next
             dirty = true
         }
