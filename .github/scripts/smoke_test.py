@@ -139,7 +139,7 @@ def main():
     time.sleep(4)
     assert_alive("Plan erstellt")
     screenshot("03-heute")
-    if not visible("Gewohnheiten"):
+    if not visible("Hallo"):
         fail("Heute-Screen wird nach dem Onboarding nicht angezeigt")
 
     # 3) Erinnerungen geplant?

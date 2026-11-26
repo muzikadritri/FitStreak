@@ -66,6 +66,8 @@ fun screens(out: File, only: Set<String>) = runBlocking {
     }
     if (want("warmup")) {
         world.advanceDays(1)
+        vm.refresh()
+        shot(out, "today_training") { TodayScreen(vm, {}, {}, {}) }
         val w = world.repo.snapshot().rotation[1]
         val wvm = WorkoutViewModel(world.repo, w.id)
         shot(out, "workout_warmup") { WorkoutScreen(wvm, {}, {}) }

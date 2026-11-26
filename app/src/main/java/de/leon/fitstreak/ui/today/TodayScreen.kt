@@ -249,6 +249,18 @@ private fun WorkoutCard(
             if (done) Pill("Erledigt", fit.done)
         }
         Spacer(Modifier.height(12.dp))
+        PrimaryButton(
+            text = when {
+                done -> "Nochmal trainieren"
+                resume -> "Training fortsetzen"
+                else -> "Training starten"
+            },
+            onClick = onStart,
+            color = if (done) fit.cardMuted else MaterialTheme.colorScheme.primary,
+            contentColor = if (done) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
+            leading = { FitIconView(FitIcon.PLAY, tint = if (done) MaterialTheme.colorScheme.onSurface else Color.White, size = 18.dp) },
+        )
+        Spacer(Modifier.height(14.dp))
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             for (row in workout.exercises) {
                 val e = row.exercise ?: continue
@@ -262,18 +274,6 @@ private fun WorkoutCard(
                 }
             }
         }
-        Spacer(Modifier.height(14.dp))
-        PrimaryButton(
-            text = when {
-                done -> "Nochmal trainieren"
-                resume -> "Training fortsetzen"
-                else -> "Training starten"
-            },
-            onClick = onStart,
-            color = if (done) fit.cardMuted else MaterialTheme.colorScheme.primary,
-            contentColor = if (done) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onPrimary,
-            leading = { FitIconView(FitIcon.PLAY, tint = if (done) MaterialTheme.colorScheme.onSurface else Color.White, size = 18.dp) },
-        )
         TextButton(onClick = onOpenPlan, modifier = Modifier.align(Alignment.CenterHorizontally)) { Text("Wochenplan ansehen / bearbeiten") }
     }
 }
