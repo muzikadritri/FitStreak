@@ -38,6 +38,11 @@ def log(msg):
 def fail(msg):
     log(f"FEHLER: {msg}")
     screenshot("fehler")
+    try:
+        texts = [t for t in re.findall(r'text="([^"]+)"', dump())]
+        log("Sichtbare Texte: " + " | ".join(texts)[:1500])
+    except Exception:
+        pass
     print(adb("logcat", "-d", "-t", "300", "AndroidRuntime:E", "*:S", check=False))
     sys.exit(1)
 
@@ -86,13 +91,16 @@ def visible(text, exact=False):
     return find(dump(), text, exact) is not None
 
 
-def tap(text, exact=True, tries=8, optional=False):
+def tap(text, exact=True, tries=8, optional=False, scroll=False):
     for _ in range(tries):
         pos = find(dump(), text, exact)
         if pos:
             shell(f"input tap {pos[0]} {pos[1]}")
             time.sleep(1.2)
             return True
+        if scroll:
+            # langsam nach unten scrollen und erneut suchen
+            shell("input swipe 540 1500 540 900 500")
         time.sleep(1)
     if optional:
         return False
@@ -153,11 +161,10 @@ def main():
         time.sleep(2)
         assert_alive(f"Tab {tab}")
         screenshot(f"04-{tab.lower()}")
-    shell("input swipe 500 1500 500 500 300")
-    tap("Einstellungen", exact=False)
+    tap("Einstellungen", exact=False, scroll=True)
     time.sleep(2)
     assert_alive("Einstellungen")
-    tap("Test-Benachrichtigung senden")
+    tap("Test-Benachrichtigung senden", scroll=True)
     time.sleep(3)
     notifications = shell("dumpsys notification --noredact", check=False)
     if PKG not in notifications:
