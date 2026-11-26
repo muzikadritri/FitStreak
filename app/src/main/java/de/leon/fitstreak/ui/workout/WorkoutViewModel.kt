@@ -23,7 +23,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.abs
 import kotlin.math.max
 
-data class SetUi(val index: Int, val reps: Int, val weightKg: Double, val done: Boolean)
+data class SetUi(val index: Int, val reps: Int, val weightKg: Double, val done: Boolean, /** vom Nutzer angepasst */ val edited: Boolean = false)
 
 data class ExerciseUi(
     val rowId: Long,
@@ -106,7 +106,7 @@ class WorkoutViewModel(private val repo: FitRepository, private val templateId: 
                 val edit = l.edits[e.id to i]
                 when {
                     log != null -> SetUi(i, log.reps, log.weightKg, true)
-                    edit != null -> SetUi(i, edit.first, edit.second, false)
+                    edit != null -> SetUi(i, edit.first, edit.second, done = false, edited = true)
                     else -> SetUi(i, defaultReps(e, plan, last, i), plan.weightKg, false)
                 }
             }
@@ -176,9 +176,10 @@ class WorkoutViewModel(private val repo: FitRepository, private val templateId: 
         val reps = repsOverride ?: set.reps
         val lastOfAll = state.exercises.withIndex().all { (i, e) -> if (i == exIndex) e.doneCount + 1 >= e.targetSets else e.complete }
         val restSec = (ex.plan.restSec + restAdjust).coerceAtLeast(15)
-        // Folgesätze mit den gerade genutzten Werten vorbelegen
-        val carry = ex.sets.filter { !it.done && it.index > setIndex && !ex.exercise.isTimed }
-            .associate { (ex.exercise.id to it.index) to ((local.value.edits[ex.exercise.id to it.index]?.first ?: it.reps) to set.weightKg) }
+        // Wurde dieser Satz angepasst, gelten die Werte auch als Vorbelegung für die folgenden Sätze
+        val carry = if (!set.edited) emptyMap() else ex.sets
+            .filter { !it.done && it.index > setIndex && !it.edited }
+            .associate { (ex.exercise.id to it.index) to (set.reps to set.weightKg) }
         local.update {
             it.copy(
                 rest = if (lastOfAll) null else RestUi(now() + restSec * 1000L, restSec),

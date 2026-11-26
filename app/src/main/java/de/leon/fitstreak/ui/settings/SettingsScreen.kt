@@ -213,7 +213,7 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
                 }
                 Spacer(Modifier.height(12.dp))
                 PrimaryButton(
-                    if (planChanged) "Plan neu erstellen" else "Plan zurücksetzen (neu erstellen)",
+                    if (planChanged) "Plan neu erstellen" else "Plan zurücksetzen",
                     onClick = { planDialog = true },
                     enabled = goals.isNotEmpty() && weekdays.size == days && (Equipment.KURZHANTEL !in equipment || weights.isNotEmpty()),
                     color = if (planChanged) MaterialTheme.colorScheme.primary else fit.cardMuted,
