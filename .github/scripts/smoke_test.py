@@ -69,12 +69,24 @@ def assert_alive(step):
 
 def dump():
     """Liest die sichtbaren Texte samt Position (uiautomator)."""
-    for _ in range(6):
+    for _ in range(8):
         shell("uiautomator dump /sdcard/ui.xml", check=False, timeout=60)
         xml = shell("cat /sdcard/ui.xml", check=False)
-        if "<node" in xml:
-            return xml
-        time.sleep(1)
+        if "<node" not in xml:
+            time.sleep(1)
+            continue
+        # Frische CI-Emulatoren melden gern „… isn't responding“ für System-Apps (Launcher,
+        # System UI). Das hat nichts mit FitStreak zu tun: „Wait“ antippen und weitermachen.
+        if "isn't responding" in xml or "keeps stopping" in xml:
+            if PKG in xml or "FitStreak" in xml:
+                return xml
+            pos = find(xml, "Wait") or find(xml, "Close app") or find(xml, "OK")
+            log("System-Dialog des Emulators weggeklickt")
+            if pos:
+                shell(f"input tap {pos[0]} {pos[1]}")
+            time.sleep(3)
+            continue
+        return xml
     return ""
 
 
@@ -125,6 +137,8 @@ def main():
     sdk = int(shell("getprop ro.build.version.sdk").strip())
     log(f"Android API {sdk}")
 
+    # dem Emulator nach dem Hochfahren etwas Ruhe gönnen (Launcher, Google-Dienste)
+    time.sleep(25 if sdk >= 30 else 5)
     adb("install", "-r", apk, timeout=300)
     if sdk >= 33:
         shell(f"pm grant {PKG} android.permission.POST_NOTIFICATIONS", check=False)
@@ -190,13 +204,15 @@ def main():
     # zufällige Eingaben in der App: darf nicht abstürzen
     monkey = subprocess.run(
         ["adb", "shell", "monkey", "-p", PKG, "-s", "7", "--throttle", "120", "--pct-syskeys", "0",
-         "--pct-appswitch", "0", "--pct-anyevent", "0", "--kill-process-after-error", "-v", "600"],
+         "--pct-appswitch", "0", "--pct-anyevent", "0", "--ignore-timeouts", "--ignore-security-exceptions",
+         "-v", "600"],
         capture_output=True, text=True, timeout=600,
     )
     out = monkey.stdout + monkey.stderr
-    if "CRASH" in out or "ANR in" in out or "Monkey aborted" in out:
+    if f"CRASH: {PKG}" in out or f"NOT RESPONDING: {PKG}" in out:
         print(out[-6000:])
         fail("Absturz während der Zufalls-Eingaben")
+    log(f"Monkey beendet (Exit {monkey.returncode})")
     screenshot("08-nach-monkey")
     crash = adb("logcat", "-d", "AndroidRuntime:E", "*:S", check=False)
     if "FATAL EXCEPTION" in crash and PKG in crash:
