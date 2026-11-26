@@ -6,6 +6,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -521,7 +522,9 @@ private fun TimedSetOverlay(exercise: Exercise, targetSec: Int, onFinish: (Int?)
 
     val left = ceil((targetSec * 1000L - elapsedMs) / 1000.0).toInt().coerceAtLeast(0)
     Box(
-        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background.copy(alpha = 0.97f)).clickable(enabled = false) {},
+        // fängt alle Taps ab, damit nichts dahinter ausgelöst wird
+        Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background.copy(alpha = 0.97f))
+            .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {},
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(24.dp)) {
@@ -571,7 +574,7 @@ private fun SummaryView(s: WorkoutSummary, onClose: () -> Unit) {
 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         Column(
-            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(WindowInsetsPadding()).padding(horizontal = 20.dp),
+            Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(WindowInsetsPadding()).navigationBarsPadding().padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Spacer(Modifier.height(28.dp))

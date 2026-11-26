@@ -93,16 +93,18 @@ fun ProfileScreen(vm: AppViewModel, onPlan: () -> Unit, onTips: () -> Unit, onSe
                         level.next?.let { "${level.xp} XP · noch ${it.minXp - level.xp} bis „${it.title}“" } ?: "${level.xp} XP · höchstes Level erreicht",
                         color = fit.onHero.copy(alpha = 0.85f), style = MaterialTheme.typography.bodySmall,
                     )
-                    Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        for (l in Level.entries) {
-                            val reached = l.ordinal <= level.level.ordinal
-                            Text(
-                                l.title, style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center, maxLines = 1,
-                                color = if (reached) fit.onXp else fit.onHero.copy(alpha = 0.6f),
-                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(50))
-                                    .background(if (reached) fit.xp else Color.White.copy(alpha = 0.12f)).padding(vertical = 4.dp),
-                            )
+                    Spacer(Modifier.height(4.dp))
+                    for (chunk in Level.entries.chunked(3)) {
+                        Row(Modifier.padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                            for (l in chunk) {
+                                val reached = l.ordinal <= level.level.ordinal
+                                Text(
+                                    "${l.ordinal + 1} · ${l.title}", style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, maxLines = 1,
+                                    color = if (reached) fit.onXp else fit.onHero.copy(alpha = 0.7f),
+                                    modifier = Modifier.weight(1f).clip(RoundedCornerShape(50))
+                                        .background(if (reached) fit.xp else Color.White.copy(alpha = 0.12f)).padding(vertical = 5.dp),
+                                )
+                            }
                         }
                     }
                 }

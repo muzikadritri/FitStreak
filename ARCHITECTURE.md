@@ -29,18 +29,25 @@ core/src/main/kotlin/de/leon/fitstreak/core/
 app/src/main/java/de/leon/fitstreak/
   FitStreakApp.kt, MainActivity.kt, AppContainer.kt   (manuelle DI, kein Hilt)
   data/
-    db/         Room: Entities, DAOs, AppDatabase
-    settings/   Settings (Datenklasse), SettingsStore (DataStore-Implementierung)
+    db/         Room: Entities, FitDao, AppDatabase
+    settings/   Settings (Datenklasse), SettingsStore + DataStore-Implementierung
+    AppData.kt            unveränderlicher Datenstand + alle Auswertungen als reine Funktionen
     FitRepository.kt      einzige Datenquelle für ViewModels, Receiver und Widget
+    Reminders.kt          Texte und Zeitpunkte der Erinnerungen (rein, getestet)
     Backup.kt             JSON-Export/-Import
   ui/
+    AppViewModel.kt       Datenstand als StateFlow + Aktionen
+    Platform.kt           Schnittstelle zu Android (Haptik, Ton, Berechtigungen, Datei-Dialoge)
+    Navigation.kt         Navigation Compose + Bottom Navigation
     theme/      Farben (Hantelscheiben-Palette), Typografie
-    components/ FigureRenderer (Canvas), BodyMap, Charts, Konfetti, Ringe, Icons
+    components/ Figure (Canvas-Renderer), BodyMap, Charts, Konfetti, Ringe, Icons, Abzeichen
     onboarding/ today/ workout/ library/ progress/ profile/ plan/ settings/ tips/
-    Navigation.kt
-  platform/     Android-Glue: Berechtigungen, SAF-Launcher, Haptik, Ton, Keep-Screen-On
+  platform/     AndroidPlatform: Implementierung von ui/Platform.kt
   notify/       ReminderScheduler, ReminderReceiver, BootReceiver, Notifications
   widget/       Glance-Widget (Streak + heutiges Workout)
+
+app/src/test/   Repository-Durchstich mit In-Memory-DAO, Backup, Erinnerungen
+tools/desktop-check/   rendert Animationen und Screens ohne Android SDK (Compose Desktop)
 ```
 
 Schichten: **UI (Compose) → ViewModel (StateFlow) → FitRepository → Room / DataStore**.
@@ -167,7 +174,8 @@ Zeitzonenwechsel. `POST_NOTIFICATIONS` wird im Onboarding zur Laufzeit angefragt
 ## 10. Build & Auslieferung
 
 - GitHub Actions (`.github/workflows/build-apk.yml`): Tests → signierte Release-APK →
-  GitHub Release `v1.0.<run_number>` (Pre-Release außerhalb von `main`).
+  GitHub Release `v1.0.<run_number>` (Pre-Release außerhalb von `main`) → Rauchtest der APK
+  auf Emulatoren (`.github/scripts/smoke_test.py`).
 - Fester Keystore `keystore/release.jks` im Repo → Updates lassen sich über die alte
   Version installieren, Daten bleiben erhalten.
 - R8/Minify ist aus (keine Überraschungen zur Laufzeit).

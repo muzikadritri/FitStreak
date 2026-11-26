@@ -60,6 +60,7 @@ fun FitCard(
         modifier = modifier.fillMaxWidth().clip(shape).let { if (onClick != null) it.clickable(onClick = onClick) else it },
         shape = shape,
         color = color,
+        contentColor = MaterialTheme.colorScheme.onSurface,
         shadowElevation = if (fit.isDark) 0.dp else 1.dp,
     ) {
         Column(Modifier.padding(padding), content = content)

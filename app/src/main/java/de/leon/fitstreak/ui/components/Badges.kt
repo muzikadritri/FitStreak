@@ -114,7 +114,7 @@ fun MilestoneDialog(
         val spin by rememberInfiniteTransition(label = "burst").animateFloat(
             0f, 360f, infiniteRepeatable(tween(14000, easing = LinearEasing), RepeatMode.Restart), label = "spin",
         )
-        Surface(shape = MaterialTheme.shapes.extraLarge, color = fit.card) {
+        Surface(shape = MaterialTheme.shapes.extraLarge, color = fit.card, contentColor = MaterialTheme.colorScheme.onSurface) {
             Column(Modifier.fillMaxWidth().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(Modifier.size(180.dp), contentAlignment = Alignment.Center) {
                     Sunburst(Modifier.fillMaxSize(), rotation = spin)

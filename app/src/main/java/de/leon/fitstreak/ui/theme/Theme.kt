@@ -2,6 +2,7 @@ package de.leon.fitstreak.ui.theme
 
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.Typography
@@ -145,12 +146,11 @@ private val FitShapes = Shapes(
 @Composable
 fun FitTheme(dark: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalFitColors provides if (dark) DarkFit else LightFit) {
-        MaterialTheme(
-            colorScheme = if (dark) DarkScheme else LightScheme,
-            typography = FitTypography,
-            shapes = FitShapes,
-            content = content,
-        )
+        val scheme = if (dark) DarkScheme else LightScheme
+        MaterialTheme(colorScheme = scheme, typography = FitTypography, shapes = FitShapes) {
+            // Standard-Textfarbe auch außerhalb von Scaffold/Surface (z. B. Onboarding) passend zum Theme
+            CompositionLocalProvider(LocalContentColor provides scheme.onBackground, content = content)
+        }
     }
 }
 

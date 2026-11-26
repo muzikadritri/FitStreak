@@ -304,7 +304,7 @@ private fun ExercisePickerDialog(
     var muscle by remember { mutableStateOf<Muscle?>(null) }
     val shown = if (muscle == null) exercises else exercises.filter { muscle in it.primary }
     Dialog(onDismissRequest = onDismiss) {
-        Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.background) {
+        Surface(shape = MaterialTheme.shapes.extraLarge, color = MaterialTheme.colorScheme.background, contentColor = MaterialTheme.colorScheme.onBackground) {
             Column(Modifier.padding(16.dp).heightIn(max = 620.dp)) {
                 Text(title, style = MaterialTheme.typography.titleLarge)
                 Text(subtitle, color = fit.muted, style = MaterialTheme.typography.bodySmall)
