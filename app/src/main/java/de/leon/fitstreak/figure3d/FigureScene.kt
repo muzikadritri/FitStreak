@@ -55,7 +55,7 @@ class Orbit(val target: V3, val radius: Float, val yaw: Float, val pitch: Float)
             val target = if (side) V3(0f, cy, cx) else V3(cx, cy, 0f)
             // Kugel um die Bewegung; die Figur ist quer zur Bildebene etwa schulterbreit
             val half = max(b.width / 2f, 0.35f)
-            val radius = kotlin.math.sqrt(half * half + cy * cy + 0.05f) * 0.98f
+            val radius = kotlin.math.sqrt(half * half + cy * cy + 0.05f) * 0.86f
             return Orbit(target, radius, yaw = if (side) -62f else -24f, pitch = 12f)
         }
     }

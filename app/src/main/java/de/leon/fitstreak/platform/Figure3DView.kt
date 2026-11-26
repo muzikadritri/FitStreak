@@ -127,7 +127,9 @@ internal fun Figure3DView(
         },
         modifier = modifier
             .pointerInput(Unit) {
-                detectHorizontalDragGestures { change, dragAmount ->
+                detectHorizontalDragGestures(
+                    onDragEnd = { Log.i(Figure3DRuntime.TAG, "gedreht auf ${yaw.toInt()} Grad") },
+                ) { change, dragAmount ->
                     change.consume()
                     yaw -= dragAmount / density * 0.45f
                 }

@@ -131,7 +131,7 @@ def wait_for_boot():
     fail("Emulator fährt nicht hoch")
 
 
-def ascii_preview(path, box, cols=64, rows=36):
+def ascii_preview(path, box, cols=64, rows=36, show=True):
     """Grobe Text-Vorschau eines Bildausschnitts fürs Log: so sieht man ohne Download, was gezeichnet wurde.
     ' ' Hintergrund, '.' hell, '+' mittel, '#' dunkel, 'R' rot (Zielmuskel), 'Y' gelb (Hilfsmuskel)."""
     try:
@@ -159,11 +159,13 @@ def ascii_preview(path, box, cols=64, rows=36):
                 lum = (r * 3 + g * 6 + b) // 10
                 line += "#" if lum < 80 else "+" if lum < 170 else "."
         lines.append(line)
-    for line in lines:
-        print("[3d] |" + line + "|", flush=True)
+    if show:
+        for line in lines:
+            if line.strip():
+                print("[3d] |" + line + "|", flush=True)
     share = painted / float(cols * rows)
     log(f"Vorschau: {share:.0%} der Fläche gezeichnet, {red} rote Felder, Hintergrund {background}")
-    return share
+    return share, lines
 
 
 def check_figure():
@@ -189,16 +191,20 @@ def check_figure():
         log("ok: 3D-Figur zeichnet")
         time.sleep(2)
         screenshot("04a-uebung")
-        box = (0, max(0, hint[1] - 760), 1080, hint[1] - 20)
-        share = ascii_preview(os.path.join(SHOTS, "04a-uebung.png"), box)
-        if share is not None and share < 0.03:
+        box = (0, max(0, hint[1] - 700), 1080, hint[1] + 60)
+        preview = ascii_preview(os.path.join(SHOTS, "04a-uebung.png"), box)
+        if preview is not None and preview[0] < 0.03:
             fail("3D-Ansicht ist leer")
-        # drehen: seitlicher Wisch über die Figur
-        y = hint[1] - 380
-        shell(f"input swipe 250 {y} 850 {y} 400")
-        time.sleep(2)
+        # drehen: seitlicher Wisch über die Figur. Der Software-Emulator zeichnet langsam – etwas warten.
+        y = hint[1] - 330
+        shell(f"input swipe 250 {y} 850 {y} 600")
+        time.sleep(10)
+        print("\n".join(adb("logcat", "-d", "-s", "Figure3D", check=False).splitlines()[-4:]))
         screenshot("04b-uebung-gedreht")
-        ascii_preview(os.path.join(SHOTS, "04b-uebung-gedreht.png"), box)
+        turned = ascii_preview(os.path.join(SHOTS, "04b-uebung-gedreht.png"), box)
+        if preview is not None and turned is not None:
+            changed = sum(a != b for la, lb in zip(preview[1], turned[1]) for a, b in zip(la, lb))
+            log(f"Nach dem Drehen unterscheiden sich {changed} Felder der Vorschau")
         assert_alive("3D-Figur gedreht")
     shell("input keyevent KEYCODE_BACK")
     time.sleep(1.5)

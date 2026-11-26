@@ -266,14 +266,15 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
 
         LightManager.Builder(LightManager.Type.DIRECTIONAL)
             .color(1f, 0.98f, 0.95f)
-            .intensity(78_000f)
+            .intensity(70_000f)
             .direction(-0.45f, -0.8f, -0.4f)
             .castShadows(true)
             .shadowOptions(LightManager.ShadowOptions().apply { mapSize = 1024; shadowFar = 12f; stable = true })
             .build(engine, sun)
         scene.addEntity(sun)
-        // gleichmäßiges Umgebungslicht, damit Schattenseiten nicht absaufen
-        indirect = IndirectLight.Builder().irradiance(1, floatArrayOf(1f, 1f, 1f)).intensity(42_000f).build(engine)
+        // Gleichmäßiges Umgebungslicht, damit Schattenseiten nicht absaufen. Zusammen mit der Sonne
+        // landet eine weiße Fläche knapp unter Weiß (bei der Standard-Belichtung der Kamera).
+        indirect = IndirectLight.Builder().irradiance(1, floatArrayOf(1f, 1f, 1f)).intensity(17_000f).build(engine)
         scene.indirectLight = indirect
 
         view.scene = scene
