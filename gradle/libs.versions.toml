@@ -13,6 +13,8 @@ glance = "1.1.1"
 serialization = "1.10.0"
 coroutines = "1.10.2"
 junit = "4.13.2"
+# 1.75.1 ist die letzte Version, die ohne neuere Kotlin-Standardbibliothek auskommt
+filament = "1.75.1"
 
 [libraries]
 androidx-core-ktx = { module = "androidx.core:core-ktx", version.ref = "coreKtx" }
@@ -36,6 +38,8 @@ kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serializa
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+filament-android = { module = "com.google.android.filament:filament-android", version.ref = "filament" }
+filament-gltfio = { module = "com.google.android.filament:gltfio-android", version.ref = "filament" }
 junit = { module = "junit:junit", version.ref = "junit" }
 
 [plugins]

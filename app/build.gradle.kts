@@ -22,6 +22,8 @@ android {
         versionCode = appVersionCode
         versionName = "1.0.$appVersionCode"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Native Bibliotheken der 3D-Engine: Handys (arm) plus x86_64 für den Emulator-Test
+        ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
     }
 
     signingConfigs {
@@ -98,6 +100,10 @@ dependencies {
 
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
+
+    // 3D-Figur: Filament (Rendering) + gltfio (lädt das Modell)
+    implementation(libs.filament.android)
+    implementation(libs.filament.gltfio)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

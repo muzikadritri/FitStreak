@@ -23,6 +23,7 @@ kotlin {
             "**/AppContainer.kt",
             "**/ui/Navigation.kt",
             "**/ui/theme/Fonts.kt",
+            "**/figure3d/FigureRenderer.kt",
             "**/data/db/AppDatabase.kt",
             "**/data/settings/DataStoreSettingsStore.kt",
             "**/platform/**",

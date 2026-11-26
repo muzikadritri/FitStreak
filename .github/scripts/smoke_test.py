@@ -6,7 +6,7 @@ Prüft ohne Test-Code in der App – also genau die Datei, die später installie
   1. Installation und Start ohne Absturz
   2. Onboarding bis zum fertigen Plan
   3. Erinnerungs-Alarme sind geplant
-  4. Alle Tabs, Einstellungen, Test-Benachrichtigung
+  4. Alle Tabs, Übungsdetail mit 3D-Figur (samt Drehen), Einstellungen, Test-Benachrichtigung
   5. Training starten + zufällige Eingaben (Monkey) ohne Absturz
   6. Nach einem Geräte-Neustart sind die Alarme wieder geplant und die Daten noch da
 """
@@ -128,6 +128,79 @@ def wait_for_boot():
     fail("Emulator fährt nicht hoch")
 
 
+def ascii_preview(path, box, cols=64, rows=36):
+    """Grobe Text-Vorschau eines Bildausschnitts fürs Log: so sieht man ohne Download, was gezeichnet wurde.
+    ' ' Hintergrund, '.' hell, '+' mittel, '#' dunkel, 'R' rot (Zielmuskel), 'Y' gelb (Hilfsmuskel)."""
+    try:
+        from PIL import Image
+    except ImportError:
+        log("Pillow fehlt – keine Text-Vorschau")
+        return None
+    img = Image.open(path).convert("RGB").crop(box)
+    background = max(img.getcolors(img.width * img.height), key=lambda c: c[0])[1]
+    small = img.resize((cols, rows), Image.BOX)
+    lines, painted, red = [], 0, 0
+    for y in range(rows):
+        line = ""
+        for x in range(cols):
+            r, g, b = small.getpixel((x, y))
+            if abs(r - background[0]) + abs(g - background[1]) + abs(b - background[2]) < 24:
+                line += " "
+                continue
+            painted += 1
+            if r > 150 and g < 110 and b < 110:
+                line += "R"; red += 1
+            elif r > 170 and g > 120 and b < 90:
+                line += "Y"
+            else:
+                lum = (r * 3 + g * 6 + b) // 10
+                line += "#" if lum < 80 else "+" if lum < 170 else "."
+        lines.append(line)
+    for line in lines:
+        print("[3d] |" + line + "|", flush=True)
+    share = painted / float(cols * rows)
+    log(f"Vorschau: {share:.0%} der Fläche gezeichnet, {red} rote Felder, Hintergrund {background}")
+    return share
+
+
+def check_figure():
+    """Öffnet eine Übung und prüft die große Figur: 3D-Modell (wenn das Gerät es kann) oder 2D-Zeichnung."""
+    tap("Archer-Liegestütze", scroll=True)
+    time.sleep(3)
+    assert_alive("Übungsdetail geöffnet")
+    hint = None
+    for _ in range(15):
+        hint = find(dump(), "3D · seitlich ziehen", exact=False)
+        if hint and "erstes 3D-Bild" in adb("logcat", "-d", "-s", "Figure3D", check=False):
+            break
+        time.sleep(2)
+    figure_log = adb("logcat", "-d", "-s", "Figure3D", check=False)
+    print("\n".join(figure_log.splitlines()[-12:]))
+    screenshot("04a-uebung")
+    assert_alive("Figur gezeichnet")
+    if not hint:
+        log("3D-Figur nicht aktiv (Gerät ohne OpenGL ES 3 oder Engine-Start fehlgeschlagen) – 2D-Figur wird gezeigt")
+    else:
+        if "erstes 3D-Bild" not in figure_log:
+            fail("3D-Figur ist eingeschaltet, hat aber kein Bild gezeichnet")
+        log("ok: 3D-Figur zeichnet")
+        time.sleep(2)
+        screenshot("04a-uebung")
+        box = (0, max(0, hint[1] - 760), 1080, hint[1] - 20)
+        share = ascii_preview(os.path.join(SHOTS, "04a-uebung.png"), box)
+        if share is not None and share < 0.03:
+            fail("3D-Ansicht ist leer")
+        # drehen: seitlicher Wisch über die Figur
+        y = hint[1] - 380
+        shell(f"input swipe 250 {y} 850 {y} 400")
+        time.sleep(2)
+        screenshot("04b-uebung-gedreht")
+        ascii_preview(os.path.join(SHOTS, "04b-uebung-gedreht.png"), box)
+        assert_alive("3D-Figur gedreht")
+    shell("input keyevent KEYCODE_BACK")
+    time.sleep(1.5)
+
+
 def alarms_scheduled():
     return PKG in shell("dumpsys alarm", check=False)
 
@@ -178,6 +251,8 @@ def main():
         time.sleep(2)
         assert_alive(f"Tab {tab}")
         screenshot(f"04-{tab.lower()}")
+        if tab == "Übungen":
+            check_figure()
     tap("Einstellungen", exact=False, scroll=True)
     time.sleep(2)
     assert_alive("Einstellungen")

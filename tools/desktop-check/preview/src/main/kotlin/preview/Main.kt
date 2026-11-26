@@ -48,6 +48,7 @@ private class Entry(val title: String, val anim: ExerciseAnimation, val primary:
 fun main(args: Array<String>) {
     when (args.firstOrNull()) {
         "plan" -> printPlans()
+        "sheet3d" -> sheets3d(args.drop(1))
         "screens" -> screens(File(args.getOrNull(1) ?: "out").apply { mkdirs() }, args.drop(2).toSet())
         else -> sheets(args)
     }

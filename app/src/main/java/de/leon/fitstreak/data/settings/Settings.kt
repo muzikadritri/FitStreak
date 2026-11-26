@@ -29,6 +29,8 @@ data class Settings(
     val saverMinutes: Int = 21 * 60,
     val soundEnabled: Boolean = true,
     val hapticsEnabled: Boolean = true,
+    /** Übungen als 3D-Modell zeigen (sonst die gezeichnete 2D-Figur). */
+    val figure3d: Boolean = true,
     /** Verlängert/verkürzt alle Satzpausen (Sekunden). */
     val restAdjustSec: Int = 0,
 

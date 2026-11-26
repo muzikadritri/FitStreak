@@ -42,6 +42,7 @@ import de.leon.fitstreak.core.progression.ProgressionEngine
 import de.leon.fitstreak.data.AppData
 import de.leon.fitstreak.ui.components.BodyMap
 import de.leon.fitstreak.ui.components.ExerciseFigure
+import de.leon.fitstreak.ui.LocalPlatform
 import de.leon.fitstreak.ui.components.FigureBox
 import de.leon.fitstreak.ui.components.FigureDefaults
 import de.leon.fitstreak.ui.components.FitCard
@@ -73,7 +74,12 @@ fun AnimationPlayer(e: Exercise, modifier: Modifier = Modifier) {
     val speed by animateFloatAsState(if (!playing) 0f else if (slow) 0.35f else 1f, Motion.enter(), label = "speed")
     Column(modifier) {
         FigureBox(Modifier.fillMaxWidth().height(280.dp)) {
-            ExerciseFigure(e, Modifier.fillMaxSize().padding(12.dp), playing = playing || speed > 0.01f, speed = speed, onPhase = { phase = it })
+            Box(Modifier.fillMaxSize()) {
+                ExerciseFigure(e, Modifier.fillMaxSize().padding(12.dp), playing = playing || speed > 0.01f, speed = speed, onPhase = { phase = it })
+                if (LocalPlatform.current.figure3dEnabled()) {
+                    Meta("3D · seitlich ziehen zum Drehen", Modifier.align(Alignment.BottomEnd).padding(horizontal = 12.dp, vertical = 8.dp))
+                }
+            }
         }
         Spacer(Modifier.height(12.dp))
         Row(verticalAlignment = Alignment.CenterVertically) {

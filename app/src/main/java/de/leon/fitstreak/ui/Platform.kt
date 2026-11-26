@@ -2,6 +2,8 @@ package de.leon.fitstreak.ui
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Modifier
+import de.leon.fitstreak.core.model.Exercise
 
 enum class Haptic { TICK, SUCCESS, ALERT }
 
@@ -32,6 +34,23 @@ interface Platform {
     /** Fragt die Benachrichtigungs-Berechtigung an (Android 13+). */
     @Composable
     fun rememberNotificationPermissionRequest(onResult: (Boolean) -> Unit): () -> Unit = { onResult(true) }
+
+    /** true, wenn das Gerät die 3D-Figur grundsätzlich darstellen kann (für den Schalter in den Einstellungen). */
+    fun figure3dSupported(): Boolean = false
+
+    /** true, wenn die 3D-Figur läuft und eingeschaltet ist – sonst zeichnet die App die 2D-Figur. */
+    @Composable
+    fun figure3dEnabled(): Boolean = false
+
+    /** Nach einem fehlgeschlagenen Start darf die 3D-Figur es noch einmal versuchen (Schalter neu eingeschaltet). */
+    fun figure3dRetry() {}
+
+    /**
+     * Die Übung als drehbares 3D-Modell. [time] liefert die aktuelle Zeit im Bewegungszyklus (Sekunden);
+     * die Uhr selbst bleibt bei der aufrufenden Stelle, damit 2D und 3D exakt gleich laufen.
+     */
+    @Composable
+    fun Figure3D(exercise: Exercise, time: () -> Float, modifier: Modifier) {}
 
     /** Öffnet den „Speichern unter“-Dialog und schreibt den von [content] gelieferten Text. */
     @Composable

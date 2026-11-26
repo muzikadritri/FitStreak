@@ -1,6 +1,7 @@
 package de.leon.fitstreak.platform
 
 import android.Manifest
+import android.app.ActivityManager
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
@@ -20,13 +21,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalView
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import de.leon.fitstreak.AppContainer
 import de.leon.fitstreak.BuildConfig
+import de.leon.fitstreak.core.model.Exercise
 import de.leon.fitstreak.notify.Notifications
 import de.leon.fitstreak.ui.Haptic
 import de.leon.fitstreak.ui.Platform
@@ -53,11 +57,22 @@ class AndroidPlatform(private val context: Context, container: AppContainer) : P
         context.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator
     }
 
+    // 3D-Figur: braucht OpenGL ES 3.0. Startet die Engine einmal nicht sauber, bleibt die App bei 2D.
+    private val figure3dGuard = Figure3DGuard(context.getSharedPreferences("figure3d", Context.MODE_PRIVATE))
+    private val gles3: Boolean = try {
+        (context.getSystemService(ActivityManager::class.java)?.deviceConfigurationInfo?.reqGlEsVersion ?: 0) >= 0x30000
+    } catch (_: Exception) {
+        false
+    }
+    private val figure3dOn = mutableStateOf(true)
+    private val figure3dBroken = mutableStateOf(figure3dGuard.crashedBefore)
+
     init {
         container.scope.launch {
             container.settings.data.collect {
                 soundOn = it.soundEnabled
                 hapticsOn = it.hapticsEnabled
+                figure3dOn.value = it.figure3d
             }
         }
     }
@@ -143,6 +158,21 @@ class AndroidPlatform(private val context: Context, container: AppContainer) : P
 
     override fun toast(message: String) {
         Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+    }
+
+    override fun figure3dSupported(): Boolean = gles3
+
+    @Composable
+    override fun figure3dEnabled(): Boolean = gles3 && figure3dOn.value && !figure3dBroken.value
+
+    override fun figure3dRetry() {
+        figure3dGuard.reset()
+        figure3dBroken.value = false
+    }
+
+    @Composable
+    override fun Figure3D(exercise: Exercise, time: () -> Float, modifier: Modifier) {
+        Figure3DView(exercise, time, modifier, figure3dGuard, onFailed = { figure3dBroken.value = true })
     }
 
     @Composable

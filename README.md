@@ -29,7 +29,7 @@ Apps im Hintergrund. Wenn Erinnerungen fehlen oder zu spät kommen:
 |---|---|
 | **Onboarding** | Name, Ziele, Ausrüstung (inkl. Hantelgewichte), 3/4/5 Trainingstage + Wochentage, Einstufungstest, Erinnerungszeit |
 | **Plan-Generator** | Ganzkörper A/B (3 Tage), Ober-/Unterkörper (4 Tage), Push/Pull/Beine/OK/GK (5 Tage); nur Übungen für deine Ausrüstung, Zielmuskeln mit mehr Sätzen, 1–2 Core-Übungen pro Einheit, geführtes Aufwärmen. Übungen tauschen, eigene Workouts |
-| **45 Übungen** | Jede mit animierter Figur (Canvas, Keyframes), „So geht's“, typischen Fehlern, Atmung, Zielmuskeln auf der Körperkarte, Varianten-Leiter |
+| **45 Übungen** | Jede mit animierter Figur – im Übungsdetail als drehbares 3D-Modell mit eingefärbten Zielmuskeln, in Listen als Zeichnung. Dazu „So geht's“, typische Fehler, Atmung, Körperkarte, Varianten-Leiter |
 | **Training** | Sätze als Chips (vorausgefüllt mit dem letzten Mal), Pausen-Timer mit Ton + Vibration, Countdown für Halteübungen, Bewertung Leicht/Passt/Schwer, Zusammenfassung mit Konfetti |
 | **Progression** | Doppelte Progression: mehr Gewicht → schwerere Variante → langsameres Tempo → zusätzlicher Satz. Zweimal nicht geschafft → leichter. Deload-Vorschlag nach 6+ Wochen |
 | **Streak** | Ruhetage brechen die Streak nicht, Streak-Schutz (+1 je 7 Tage, max. 2) greift automatisch |
@@ -57,7 +57,7 @@ Jeder Push baut über GitHub Actions (`.github/workflows/build-apk.yml`) automat
 2. signierte Release-APK (`versionCode` = Run-Nummer)
 3. GitHub Release `v1.0.<Run-Nummer>` mit der APK (außerhalb von `main` als Pre-Release)
 4. Rauchtest auf Emulatoren (Android 8 und Android 15): Installation, Start, Onboarding,
-   Erinnerungen, Zufalls-Eingaben, Neustart
+   Erinnerungen, Übungsdetail mit 3D-Figur, Zufalls-Eingaben, Neustart
 
 Lokal (mit Android SDK):
 
@@ -71,7 +71,8 @@ Ohne Android SDK lassen sich Logik und Oberfläche trotzdem prüfen:
 ```bash
 cd tools/desktop-check
 gradle :core:test :preview:test                       # alle Unit-Tests
-gradle :preview:run --args="sheet out"                # Kontaktbögen aller Übungsanimationen
+gradle :preview:run --args="sheet out"                # Kontaktbögen aller Übungsanimationen (2D)
+gradle :preview:run --args="sheet3d out"              # dieselben Übungen als 3D-Figur (Software-Renderer)
 gradle :preview:run --args="screens out"              # Screenshots der Screens mit Testdaten
 ```
 
@@ -80,6 +81,13 @@ gradle :preview:run --args="screens out"              # Screenshots der Screens 
 Der Keystore `keystore/release.jks` liegt absichtlich im (privaten) Repo, damit jede gebaute APK
 dieselbe Signatur hat und Updates ohne Datenverlust funktionieren. Wer das Repo öffentlich macht,
 sollte den Keystore vorher durch ein GitHub-Secret ersetzen.
+
+## Fremdmaterial
+
+- Schrift **IBM Plex** (SIL Open Font License) – `licenses/IBM-Plex-OFL.txt`
+- 3D-Engine **Filament** von Google (Apache License 2.0)
+- 3D-Mannequin **„X Bot“** von Adobe Mixamo, bezogen aus den three.js-Beispielen – Details in
+  `licenses/3D-Figur.md`
 
 ## Datenschutz
 

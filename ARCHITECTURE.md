@@ -42,12 +42,14 @@ app/src/main/java/de/leon/fitstreak/
     theme/      Farben (Hantelscheiben-Palette), Typografie
     components/ Figure (Canvas-Renderer), BodyMap, Charts, Konfetti, Ringe, Icons, Abzeichen
     onboarding/ today/ workout/ library/ progress/ profile/ plan/ settings/ tips/
-  platform/     AndroidPlatform: Implementierung von ui/Platform.kt
+  figure3d/     3D-Figur: Rig3D (2D-Posen → 3D-Skelett), GlbFile, Math3, FigureRenderer (Filament)
+  platform/     AndroidPlatform: Implementierung von ui/Platform.kt, Figure3DView
   notify/       ReminderScheduler, ReminderReceiver, BootReceiver, Notifications
   widget/       Glance-Widget (Streak + heutiges Workout)
 
 app/src/test/   Repository-Durchstich mit In-Memory-DAO, Backup, Erinnerungen
 tools/desktop-check/   rendert Animationen und Screens ohne Android SDK (Compose Desktop)
+tools/model/           bereitet das 3D-Mannequin auf (Muskelregionen, Requisiten)
 ```
 
 Schichten: **UI (Compose) → ViewModel (StateFlow) → FitRepository → Room / DataStore**.
@@ -146,7 +148,7 @@ Bottom Navigation: **Heute · Übungen · Fortschritt · Profil**
 
 ## 8. Übungs-Animationen
 
-Ein Renderer für alle Übungen (`ui/components/FigureRenderer.kt`, Compose Canvas):
+Ein Renderer für alle Übungen (`ui/components/Figure.kt`, Compose Canvas):
 
 - **Rig** (`core/anim`): Hüftposition, Rumpfwinkel, Kopf; jede Gliedmaße entweder per
   Winkel (FK) oder per Zielpunkt (2-Knochen-IK – z. B. Hände am Boden beim Liegestütz).
@@ -155,6 +157,33 @@ Ein Renderer für alle Übungen (`ui/components/FigureRenderer.kt`, Compose Canv
   Ease-in-out und kurze Pause an den Umkehrpunkten.
 - Seiten- oder Frontansicht, Bodenlinie, ferne Gliedmaßen heller, Requisiten
   (Hantel, Stuhl/Bank, Klimmzugstange, Band), Zielmuskeln farbig hervorgehoben.
+
+### 3D-Figur (`figure3d`)
+
+Die große Figur (Übungsdetail, Aufwärmen) ist ein echtes 3D-Modell, gerendert mit
+[Filament](https://github.com/google/filament). Listen und Vorschauen bleiben bei der 2D-Zeichnung.
+
+- **Eine Quelle für beide Darstellungen:** Es gibt keine fertigen Animationsclips. `Rig3D` rechnet
+  jede 2D-Pose pro Frame auf das Skelett des Mannequins um – 2D und 3D laufen mit derselben Uhr
+  und zeigen exakt dieselbe Bewegung. Neue Übungen brauchen weiterhin nur 2–3 Keyframes.
+- **Umrechnung:** Seitenansicht = Y/Z-Ebene (nah = rechte Körperseite), Frontansicht = X/Y-Ebene.
+  Jeder Knochen bekommt eine Drehung „Ruherichtung → Zielrichtung“ mit fester Scharnierachse
+  (Ellbogen/Knie), damit sich nichts verdreht. Dazu kommt, was eine Strichfigur nicht braucht:
+  Hände liegen flach auf Boden/Stuhl, Finger schließen sich um Hantel, Stange und Band, eine
+  Hantel für beide Hände führt die Hände zusammen, die Füße stehen nebeneinander.
+- **Modell:** `assets/figure3d/figure.glb` ist das Mixamo-Mannequin „X Bot“. `tools/model/build_figure.py`
+  entfernt die Clips und trennt die Oberfläche in Materialien je Muskelregion (`s_CHEST`, `s_QUADS` …),
+  die zur Laufzeit eingefärbt werden: Zielmuskel rot, Hilfsmuskel gelb. Requisiten sind skalierte
+  Einheitswürfel und -zylinder.
+- **Rendering:** `FigureRenderer` zeichnet in eine durchsichtige `TextureView` (Sonne mit Schatten,
+  gleichmäßiges Umgebungslicht, „PBR Neutral“-Tonemapping, 4× MSAA). Die Engine wird einmal pro
+  Prozess angelegt (`Figure3DRuntime`), gezeichnet wird nur, wenn sich Pose oder Blickwinkel ändern.
+  Seitlich wischen dreht die Figur, Doppeltipp stellt die Startansicht her.
+- **Rückfall auf 2D:** ohne OpenGL ES 3.0, bei ausgeschaltetem Schalter (Einstellungen → Training)
+  oder wenn die Engine nicht startet. Ein Start, der nie bis zum ersten Bild kommt (Treiber-Absturz),
+  wird in `Figure3DGuard` vermerkt – danach bleibt die App bei 2D, bis der Schalter neu eingeschaltet wird.
+- **Prüfen ohne Gerät:** `tools/desktop-check` enthält einen Software-Renderer (CPU-Skinning + Z-Buffer),
+  der dieselbe `Rig3D`-Lösung und dieselben Modelldateien nutzt: `gradle :preview:run --args="sheet3d out"`.
 
 ### Gestaltung und Bewegung
 

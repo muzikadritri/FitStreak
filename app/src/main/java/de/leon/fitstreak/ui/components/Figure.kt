@@ -51,6 +51,7 @@ import de.leon.fitstreak.core.anim.lerp
 import de.leon.fitstreak.core.anim.resolve
 import de.leon.fitstreak.core.model.BodyPart
 import de.leon.fitstreak.core.model.Exercise
+import de.leon.fitstreak.ui.LocalPlatform
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlin.math.max
 import kotlin.math.min
@@ -130,8 +131,14 @@ fun ExerciseFigure(
     }
     val primary = exercise.primaryParts
     val secondary = exercise.secondaryParts
-    Canvas(modifier) {
-        drawExercise(anim, anim.frameAt(time).pose, primary, secondary, colors)
+    // Große Figuren laufen als 3D-Modell, wenn das Gerät es kann – dieselbe Uhr, dieselben Posen.
+    val platform = LocalPlatform.current
+    if (platform.figure3dEnabled()) {
+        platform.Figure3D(exercise, { time }, modifier)
+    } else {
+        Canvas(modifier) {
+            drawExercise(anim, anim.frameAt(time).pose, primary, secondary, colors)
+        }
     }
 }
 

@@ -145,6 +145,12 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
                 Text("Training", style = MaterialTheme.typography.titleLarge)
                 SwitchRow("Ton", "Signal am Ende von Pause und Countdown", s.soundEnabled) { on -> vm.updateSettings { it.copy(soundEnabled = on) } }
                 SwitchRow("Vibration", "Haptisches Feedback beim Abhaken und Timer-Ende", s.hapticsEnabled) { on -> vm.updateSettings { it.copy(hapticsEnabled = on) } }
+                if (platform.figure3dSupported()) {
+                    SwitchRow("3D-Figur", "Übungen als drehbares 3D-Modell zeigen. Aus = gezeichnete Figur", s.figure3d) { on ->
+                        if (on) platform.figure3dRetry()
+                        vm.updateSettings { it.copy(figure3d = on) }
+                    }
+                }
                 ThinDivider()
                 Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
