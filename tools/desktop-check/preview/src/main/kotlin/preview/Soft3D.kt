@@ -3,7 +3,7 @@ package preview
 import de.leon.fitstreak.core.anim.ExerciseAnimation
 import de.leon.fitstreak.core.exercises.ExerciseLibrary
 import de.leon.fitstreak.core.model.BodyPart
-import de.leon.fitstreak.figure3d.FigureSkeleton
+import de.leon.fitstreak.figure3d.FigureModel
 import de.leon.fitstreak.figure3d.GlbFile
 import de.leon.fitstreak.figure3d.Mat4
 import de.leon.fitstreak.figure3d.Orbit
@@ -13,10 +13,6 @@ import de.leon.fitstreak.figure3d.Prop3Role
 import de.leon.fitstreak.figure3d.Rig3D
 import de.leon.fitstreak.figure3d.V3
 import de.leon.fitstreak.figure3d.paintFor
-import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonArray
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
 import java.awt.Color
 import java.awt.Font
 import java.awt.RenderingHints
@@ -31,45 +27,7 @@ import kotlin.math.tan
  * Software-Renderer (CPU-Skinning + Z-Buffer) für die 3D-Figur. Nur zum Prüfen ohne Gerät:
  * Er benutzt dieselbe Skelett-Lösung ([Rig3D]) und dieselben Modelldateien wie die App.
  */
-private class Part(val material: String, val indices: IntArray)
-
-private class SoftMesh(
-    val positions: FloatArray, val normals: FloatArray,
-    val joints: IntArray, val weights: FloatArray, val parts: List<Part>,
-)
-
-private class Model(file: File) {
-    val glb = GlbFile(file.readBytes())
-    val skeleton = FigureSkeleton.from(glb)
-    val meshes: List<SoftMesh>
-    val skinJoints: IntArray
-    val inverseBind: Array<FloatArray>
-
-    init {
-        val materials = glb.materials.map { it["name"]!!.jsonPrimitive.content }
-        meshes = glb.meshes.map { mesh ->
-            val prims = mesh["primitives"]!!.jsonArray.map { it.jsonObject }
-            val attrs = prims.first()["attributes"]!!.jsonObject
-            fun acc(name: String) = attrs[name]?.jsonPrimitive?.int
-            SoftMesh(
-                positions = glb.floats(acc("POSITION")!!),
-                normals = glb.floats(acc("NORMAL")!!),
-                joints = acc("JOINTS_0")?.let(glb::ints) ?: IntArray(0),
-                weights = acc("WEIGHTS_0")?.let(glb::floats) ?: FloatArray(0),
-                parts = prims.map { p ->
-                    require(p["attributes"]!!.jsonObject["POSITION"]!!.jsonPrimitive.int == acc("POSITION")) { "Primitive teilen sich die Vertices" }
-                    Part(materials[p["material"]!!.jsonPrimitive.int], glb.ints(p["indices"]!!.jsonPrimitive.int))
-                },
-            )
-        }
-        val skin = glb.skins.firstOrNull()
-        skinJoints = skin?.get("joints")?.jsonArray?.map { it.jsonPrimitive.int }?.toIntArray() ?: IntArray(0)
-        inverseBind = skin?.get("inverseBindMatrices")?.jsonPrimitive?.int?.let { a ->
-            val f = glb.floats(a)
-            Array(skinJoints.size) { f.copyOfRange(it * 16, it * 16 + 16) }
-        } ?: emptyArray()
-    }
-}
+private fun model(file: File) = FigureModel(GlbFile(file.readBytes()))
 
 private class Canvas3(val w: Int, val h: Int, eye: V3, target: V3, fovY: Float) {
     val color = IntArray(w * h)
@@ -173,9 +131,9 @@ private class Canvas3(val w: Int, val h: Int, eye: V3, target: V3, fovY: Float) 
 }
 
 private class Soft3D(assets: File) {
-    val figure = Model(File(assets, "figure.glb"))
-    val box = Model(File(assets, "box.glb"))
-    val cylinder = Model(File(assets, "cylinder.glb"))
+    val figure = model(File(assets, "figure.glb"))
+    val box = model(File(assets, "box.glb"))
+    val cylinder = model(File(assets, "cylinder.glb"))
     val rig = Rig3D(figure.skeleton)
 
     private fun paint(p: Paint3) = when (p) {
@@ -248,29 +206,19 @@ private class Soft3D(assets: File) {
         val solved = rig.solve(anim, time)
         fun place(p: V3) = flatten?.invoke(p) ?: p
 
-        val skin = Array(figure.skinJoints.size) { Mat4.mul(solved.world[figure.skinJoints[it]], figure.inverseBind[it]) }
+        // dieselbe CPU-Verformung wie in der App
+        figure.pose(solved.world)
         for (mesh in figure.meshes) {
-            val count = mesh.positions.size / 3
-            val pos = arrayOfNulls<V3>(count)
-            val nor = arrayOfNulls<V3>(count)
-            for (v in 0 until count) {
-                val p = V3(mesh.positions[v * 3], mesh.positions[v * 3 + 1], mesh.positions[v * 3 + 2])
-                val n = V3(mesh.normals[v * 3], mesh.normals[v * 3 + 1], mesh.normals[v * 3 + 2])
-                var sp = V3.ZERO; var sn = V3.ZERO
-                for (k in 0..3) {
-                    val wgt = mesh.weights[v * 4 + k]
-                    if (wgt == 0f) continue
-                    val m = skin[mesh.joints[v * 4 + k]]
-                    sp += Mat4.point(m, p) * wgt
-                    sn += (Mat4.linear(m) * n) * wgt
-                }
-                pos[v] = sp; nor[v] = sn
-            }
+            val p = FloatArray(mesh.vertexCount * 3)
+            val nrm = FloatArray(mesh.vertexCount * 3)
+            figure.skin(mesh, p, nrm)
+            fun pos(i: Int) = place(V3(p[i * 3], p[i * 3 + 1], p[i * 3 + 2]))
+            fun nor(i: Int) = V3(nrm[i * 3], nrm[i * 3 + 1], nrm[i * 3 + 2])
             for (part in mesh.parts) {
                 val rgb = paint(paintFor(part.material, primary, secondary))
                 for (t in part.indices.indices step 3) {
                     val a = part.indices[t]; val b = part.indices[t + 1]; val c = part.indices[t + 2]
-                    canvas.triangle(place(pos[a]!!), place(pos[b]!!), place(pos[c]!!), nor[a]!!, nor[b]!!, nor[c]!!, rgb)
+                    canvas.triangle(pos(a), pos(b), pos(c), nor(a), nor(b), nor(c), rgb)
                 }
             }
         }

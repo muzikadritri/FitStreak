@@ -179,13 +179,17 @@ Die große Figur (Übungsdetail, Aufwärmen) ist ein echtes 3D-Modell, gerendert
   entfernt die Clips und trennt die Oberfläche in Materialien je Muskelregion (`s_CHEST`, `s_QUADS` …),
   die zur Laufzeit eingefärbt werden: Zielmuskel rot, Hilfsmuskel gelb. Requisiten sind skalierte
   Einheitswürfel und -zylinder.
+- **Verformung auf der CPU:** `FigureModel.skin` verformt das Netz jeden Frame selbst (ca. 25 000
+  Vertices) und übergibt der Engine ein starres Netz. Der Skinning-Shader der Engine braucht mehr
+  Uniforms, als manche Treiber erlauben (u. a. der Emulator) – dort bricht Filament hart ab.
 - **Rendering:** `FigureRenderer` zeichnet in eine durchsichtige `TextureView` (Sonne mit Schatten,
   gleichmäßiges Umgebungslicht, „PBR Neutral“-Tonemapping, 4× MSAA). Die Engine wird einmal pro
   Prozess angelegt (`Figure3DRuntime`), gezeichnet wird nur, wenn sich Pose oder Blickwinkel ändern.
   Seitlich wischen dreht die Figur, Doppeltipp stellt die Startansicht her.
 - **Rückfall auf 2D:** ohne OpenGL ES 3.0, bei ausgeschaltetem Schalter (Einstellungen → Training)
-  oder wenn die Engine nicht startet. Ein Start, der nie bis zum ersten Bild kommt (Treiber-Absturz),
-  wird in `Figure3DGuard` vermerkt – danach bleibt die App bei 2D, bis der Schalter neu eingeschaltet wird.
+  oder wenn die Engine nicht startet. Wird die App mitten in der 3D-Ansicht beendet, bevor diese ein
+  paar Sekunden stabil lief (Treiber-Absturz), vermerkt `Figure3DGuard` das – danach bleibt die App
+  bei 2D, bis der Schalter neu eingeschaltet wird.
 - **Prüfen ohne Gerät:** `tools/desktop-check` enthält einen Software-Renderer (CPU-Skinning + Z-Buffer),
   der dieselbe `Rig3D`-Lösung und dieselben Modelldateien nutzt: `gradle :preview:run --args="sheet3d out"`.
 

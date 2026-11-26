@@ -45,6 +45,10 @@ interface Platform {
     @Composable
     fun figure3dEnabled(): Boolean = false
 
+    /** true, wenn die 3D-Figur auf diesem Gerät zuletzt abgestürzt ist und deshalb pausiert. */
+    @Composable
+    fun figure3dFailed(): Boolean = false
+
     /** Nach einem fehlgeschlagenen Start darf die 3D-Figur es noch einmal versuchen (Schalter neu eingeschaltet). */
     fun figure3dRetry() {}
 

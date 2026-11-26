@@ -28,7 +28,7 @@ import de.leon.fitstreak.ui.components.FigureDefaults
 
 /** Merkt sich über Abstürze hinweg, ob die 3D-Engine auf diesem Gerät sauber startet. */
 internal class Figure3DGuard(private val prefs: SharedPreferences) {
-    /** true, wenn ein früherer Start nie bis zum ersten Bild kam (z. B. Treiber-Absturz). */
+    /** true, wenn die App beim letzten Mal mitten in der 3D-Ansicht beendet wurde (z. B. Treiber-Absturz). */
     val crashedBefore: Boolean = prefs.getBoolean(PENDING, false)
     private var verified = false
 
@@ -36,15 +36,22 @@ internal class Figure3DGuard(private val prefs: SharedPreferences) {
         if (!verified) prefs.edit().putBoolean(PENDING, true).commit()
     }
 
+    /** Die Ansicht hat eine Weile sauber gezeichnet: Die Engine läuft auf diesem Gerät. */
     fun succeeded() {
         if (!verified) {
             verified = true
             prefs.edit().putBoolean(PENDING, false).apply()
-            Log.i(Figure3DRuntime.TAG, "erstes 3D-Bild gezeichnet")
+            Log.i(Figure3DRuntime.TAG, "3D-Ansicht läuft stabil")
         }
     }
 
+    /** Die Ansicht wurde regulär geschlossen (oder kam gar nicht erst zustande) – kein Absturz. */
     fun reset() {
+        if (!verified) prefs.edit().putBoolean(PENDING, false).apply()
+    }
+
+    /** Neuer Versuch nach einem vermerkten Absturz. */
+    fun retry() {
         prefs.edit().putBoolean(PENDING, false).apply()
     }
 
@@ -106,9 +113,10 @@ internal fun Figure3DView(
                     val runtime = Figure3DRuntime.get(context) ?: error("3D-Engine startet nicht")
                     holder.renderer = FigureRenderer(runtime, view).also { renderer ->
                         renderer.onFirstFrame = {
-                            guard.succeeded()
+                            Log.i(Figure3DRuntime.TAG, "erstes 3D-Bild gezeichnet")
                             view.animate().alpha(1f).setDuration(220).start()
                         }
+                        renderer.onStable = { guard.succeeded() }
                     }
                 } catch (t: Throwable) {
                     Log.w(Figure3DRuntime.TAG, "3D-Ansicht nicht verfügbar, nutze 2D", t)
@@ -131,6 +139,7 @@ internal fun Figure3DView(
         onDispose {
             holder.renderer?.destroy()
             holder.renderer = null
+            guard.reset()
         }
     }
 

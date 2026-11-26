@@ -171,9 +171,12 @@ class AndroidPlatform(private val context: Context, container: AppContainer) : P
     override fun figure3dEnabled(): Boolean = gles3 && figure3dOn.value && !figure3dBroken.value
 
     override fun figure3dRetry() {
-        figure3dGuard.reset()
+        figure3dGuard.retry()
         figure3dBroken.value = false
     }
+
+    @Composable
+    override fun figure3dFailed(): Boolean = figure3dBroken.value
 
     @Composable
     override fun Figure3D(exercise: Exercise, time: () -> Float, modifier: Modifier) {

@@ -4,17 +4,21 @@ import android.content.Context
 import android.util.Log
 import android.view.Surface
 import android.view.TextureView
+import com.google.android.filament.Box
 import com.google.android.filament.Camera
 import com.google.android.filament.ColorGrading
 import com.google.android.filament.Engine
 import com.google.android.filament.EntityManager
 import com.google.android.filament.Filament
+import com.google.android.filament.IndexBuffer
 import com.google.android.filament.IndirectLight
 import com.google.android.filament.LightManager
 import com.google.android.filament.MaterialInstance
+import com.google.android.filament.RenderableManager
 import com.google.android.filament.Renderer
 import com.google.android.filament.SwapChain
 import com.google.android.filament.ToneMapper
+import com.google.android.filament.VertexBuffer
 import com.google.android.filament.View
 import com.google.android.filament.Viewport
 import com.google.android.filament.android.DisplayHelper
@@ -22,12 +26,14 @@ import com.google.android.filament.android.UiHelper
 import com.google.android.filament.gltfio.AssetLoader
 import com.google.android.filament.gltfio.FilamentAsset
 import com.google.android.filament.gltfio.Gltfio
+import com.google.android.filament.gltfio.MaterialProvider
 import com.google.android.filament.gltfio.ResourceLoader
 import com.google.android.filament.gltfio.UbershaderProvider
 import de.leon.fitstreak.core.anim.ExerciseAnimation
 import de.leon.fitstreak.core.model.BodyPart
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.FloatBuffer
 import kotlin.math.pow
 
 /** Farben der 3D-Szene als 0xRRGGBB (sRGB). */
@@ -53,19 +59,16 @@ class Figure3DRuntime private constructor(context: Context) {
     val loader: AssetLoader
     val resources: ResourceLoader
     val colorGrading: ColorGrading
-    val figureBytes: ByteBuffer
     val boxBytes: ByteBuffer
     val cylinderBytes: ByteBuffer
-    val skeleton: FigureSkeleton
+    val model: FigureModel
     val rig: Rig3D
 
     init {
         Filament.init()
         Gltfio.init()
-        val figure = context.assets.open("figure3d/figure.glb").use { it.readBytes() }
-        skeleton = FigureSkeleton.from(GlbFile(figure))
-        rig = Rig3D(skeleton)
-        figureBytes = direct(figure)
+        model = FigureModel(GlbFile(context.assets.open("figure3d/figure.glb").use { it.readBytes() }))
+        rig = Rig3D(model.skeleton)
         boxBytes = direct(context.assets.open("figure3d/box.glb").use { it.readBytes() })
         cylinderBytes = direct(context.assets.open("figure3d/cylinder.glb").use { it.readBytes() })
         engine = Engine.create()
@@ -79,11 +82,16 @@ class Figure3DRuntime private constructor(context: Context) {
     private fun direct(bytes: ByteArray): ByteBuffer =
         ByteBuffer.allocateDirect(bytes.size).order(ByteOrder.nativeOrder()).put(bytes).also { it.rewind() }
 
+    /** Material der Figur: beleuchtet, undurchsichtig, ohne Texturen – Farbe kommt als Parameter. */
+    fun createMaterial(label: String): MaterialInstance =
+        materials.createMaterialInstance(MaterialProvider.MaterialKey(), IntArray(8), label, null)
+            ?: error("Material konnte nicht angelegt werden")
+
     fun load(bytes: ByteBuffer): FilamentAsset {
         bytes.rewind()
         val asset = loader.createAsset(bytes) ?: error("Modell konnte nicht geladen werden")
         resources.loadResources(asset)
-        // Die Quelldaten bleiben erhalten: der Animator (für die Knochen-Matrizen) braucht sie.
+        asset.releaseSourceData()
         return asset
     }
 
@@ -109,7 +117,8 @@ class Figure3DRuntime private constructor(context: Context) {
 
 /**
  * Zeichnet die Figur in eine [TextureView]: eigene Szene, Kamera und Lichter, gemeinsame Engine.
- * Die Pose kommt pro Frame aus [Rig3D] – es gibt keine vorgefertigten Animationsclips.
+ * Die Pose kommt pro Frame aus [Rig3D] – es gibt keine vorgefertigten Animationsclips –, die
+ * Verformung des Netzes rechnet [FigureModel] auf der CPU.
  */
 class FigureRenderer(private val runtime: Figure3DRuntime, private val textureView: TextureView) {
     private val engine = runtime.engine
@@ -124,11 +133,91 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
     private val displayHelper = DisplayHelper(textureView.context)
     private var swapChain: SwapChain? = null
 
-    private val figure: FilamentAsset = runtime.load(runtime.figureBytes)
-    private val figureMaterials: Array<MaterialInstance> = figure.instance.materialInstances
-    private val animator = figure.instance.animator
-    private val nodeEntities: IntArray
-    private val nodeInstances: IntArray
+    /**
+     * Ein Netz der Figur als eigenes Renderable. Positionen und Normalen kommen jeden Frame fertig
+     * verformt von der CPU ([FigureModel.skin]); die Engine sieht ein ganz normales, starres Netz.
+     */
+    private inner class SkinnedMesh(val mesh: FigureMesh, index: Int) {
+        val entity = EntityManager.get().create()
+        val materials: List<Pair<String, MaterialInstance>> = mesh.parts.map { it.material to runtime.createMaterial("figure_${it.material}") }
+        private val count = mesh.vertexCount
+        private val vertices: VertexBuffer = VertexBuffer.Builder()
+            .vertexCount(count)
+            .bufferCount(4)
+            .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
+            .attribute(VertexBuffer.VertexAttribute.TANGENTS, 1, VertexBuffer.AttributeType.FLOAT4, 0, 16)
+            // Das Material erwartet auch Farbe und Texturkoordinaten – hier neutral gefüllt
+            .attribute(VertexBuffer.VertexAttribute.COLOR, 2, VertexBuffer.AttributeType.UBYTE4, 0, 4)
+            .normalized(VertexBuffer.VertexAttribute.COLOR)
+            .attribute(VertexBuffer.VertexAttribute.UV0, 3, VertexBuffer.AttributeType.FLOAT2, 0, 8)
+            .attribute(VertexBuffer.VertexAttribute.UV1, 3, VertexBuffer.AttributeType.FLOAT2, 0, 8)
+            .build(engine)
+        private val indices: IndexBuffer
+        private val positions = FloatArray(count * 3)
+        private val normals = FloatArray(count * 3)
+        private val quats = FloatArray(count * 4)
+
+        // Die Engine liest die Daten erst etwas später aus – darum mehrere Puffer im Wechsel
+        private val positionBuffers = Array(BUFFER_RING) { floats(count * 3) }
+        private val quatBuffers = Array(BUFFER_RING) { floats(count * 4) }
+        private var ring = 0
+
+        init {
+            val total = mesh.parts.sumOf { it.indices.size }
+            val all = ByteBuffer.allocateDirect(total * 4).order(ByteOrder.nativeOrder()).asIntBuffer()
+            for (part in mesh.parts) all.put(part.indices)
+            all.rewind()
+            indices = IndexBuffer.Builder().indexCount(total).bufferType(IndexBuffer.Builder.IndexType.UINT).build(engine)
+            indices.setBuffer(engine, all)
+
+            val white = ByteBuffer.allocateDirect(count * 4).order(ByteOrder.nativeOrder())
+            repeat(count * 4) { white.put(0xFF.toByte()) }
+            white.rewind()
+            vertices.setBufferAt(engine, 2, white)
+            vertices.setBufferAt(engine, 3, ByteBuffer.allocateDirect(count * 8).order(ByteOrder.nativeOrder()))
+
+            val builder = RenderableManager.Builder(mesh.parts.size)
+                // Die Figur bewegt sich über die ganze Matte – großzügige Hüllbox, kein Wegschneiden
+                .boundingBox(Box(0f, 1f, 0f, 2.5f, 1.5f, 2.5f))
+                .culling(false)
+                .castShadows(true)
+                .receiveShadows(true)
+                .priority(index)
+            var offset = 0
+            mesh.parts.forEachIndexed { i, part ->
+                builder.geometry(i, RenderableManager.PrimitiveType.TRIANGLES, vertices, indices, offset, part.indices.size)
+                builder.material(i, materials[i].second)
+                offset += part.indices.size
+            }
+            builder.build(engine, entity)
+            scene.addEntity(entity)
+        }
+
+        private fun floats(size: Int): FloatBuffer = ByteBuffer.allocateDirect(size * 4).order(ByteOrder.nativeOrder()).asFloatBuffer()
+
+        fun update() {
+            runtime.model.skin(mesh, positions, normals)
+            FigureModel.quaternions(normals, quats)
+            ring = (ring + 1) % BUFFER_RING
+            val p = positionBuffers[ring]
+            p.clear(); p.put(positions); p.rewind()
+            vertices.setBufferAt(engine, 0, p)
+            val q = quatBuffers[ring]
+            q.clear(); q.put(quats); q.rewind()
+            vertices.setBufferAt(engine, 1, q)
+        }
+
+        fun destroy() {
+            scene.removeEntity(entity)
+            engine.destroyEntity(entity)
+            EntityManager.get().destroy(entity)
+            engine.destroyVertexBuffer(vertices)
+            engine.destroyIndexBuffer(indices)
+            for ((_, material) in materials) engine.destroyMaterialInstance(material)
+        }
+    }
+
+    private val meshes: List<SkinnedMesh>
 
     private inner class PropSlot(bytes: ByteBuffer) {
         val asset: FilamentAsset = runtime.load(bytes)
@@ -167,15 +256,13 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
     /** Wird einmal aufgerufen, sobald das erste Bild auf dem Schirm ist. */
     var onFirstFrame: (() -> Unit)? = null
 
+    /** Wird einmal aufgerufen, wenn die Ansicht eine Weile ohne Absturz gezeichnet hat. */
+    var onStable: (() -> Unit)? = null
+    private var frames = 0
+    private var firstFrameNanos = 0L
+
     init {
-        val skeleton = runtime.skeleton
-        val tm = engine.transformManager
-        nodeEntities = IntArray(skeleton.nodes.size) { figure.getFirstEntityByName(skeleton.nodes[it].name) }
-        nodeInstances = IntArray(skeleton.nodes.size) { if (nodeEntities[it] != 0) tm.getInstance(nodeEntities[it]) else 0 }
-        // Die Hüllbox stammt aus der T-Pose; liegende Posen würden sonst fälschlich weggeschnitten.
-        val rm = engine.renderableManager
-        for (entity in figure.entities) if (rm.hasComponent(entity)) rm.setCulling(rm.getInstance(entity), false)
-        scene.addEntities(figure.entities)
+        meshes = runtime.model.meshes.mapIndexed { i, mesh -> SkinnedMesh(mesh, i) }
 
         LightManager.Builder(LightManager.Type.DIRECTIONAL)
             .color(1f, 0.98f, 0.95f)
@@ -245,8 +332,8 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
 
     private fun applyColors() {
         val c = colors ?: return
-        for (material in figureMaterials) {
-            when (paintFor(material.name, primary, secondary)) {
+        for (mesh in meshes) for ((name, material) in mesh.materials) {
+            when (paintFor(name, primary, secondary)) {
                 Paint3.BODY -> paint(material, c.body, 0.62f)
                 Paint3.JOINT -> paint(material, c.joint, 0.5f)
                 Paint3.PRIMARY -> paint(material, c.primary, 0.55f)
@@ -294,9 +381,8 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
 
         val rig = runtime.rig
         val solved = rig.solve(a, time)
-        val tm = engine.transformManager
-        tm.openLocalTransformTransaction()
-        for (i in nodeInstances.indices) if (nodeInstances[i] != 0) tm.setTransform(nodeInstances[i], solved.local[i])
+        runtime.model.pose(solved.world)
+        for (mesh in meshes) mesh.update()
         var box = 0
         var cylinder = 0
         for (prop in rig.props(a, solved)) {
@@ -305,8 +391,6 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
         }
         for (i in box until boxes.size) boxes[i].hide()
         for (i in cylinder until cylinders.size) cylinders[i].hide()
-        tm.commitLocalTransformTransaction()
-        animator.updateBoneMatrices()
 
         val eye = o.eye(o.distance(Orbit.FOV, aspect.toFloat()))
         camera.setProjection(Orbit.FOV.toDouble(), aspect, 0.1, 40.0, Camera.Fov.VERTICAL)
@@ -317,7 +401,11 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
             renderer.endFrame()
             dirty = false
             lastTime = time
+            frames++
+            if (firstFrameNanos == 0L) firstFrameNanos = frameTimeNanos
             onFirstFrame?.let { it(); onFirstFrame = null }
+            // Shader werden erst nach dem ersten Bild fertig übersetzt – „läuft stabil“ gilt erst etwas später
+            if (frames >= STABLE_FRAMES && frameTimeNanos - firstFrameNanos > STABLE_NANOS) onStable?.let { it(); onStable = null }
         }
     }
 
@@ -327,9 +415,9 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
         uiHelper.detach()
         displayHelper.detach()
         swapChain?.let { engine.destroySwapChain(it); swapChain = null }
+        engine.flushAndWait()
         for (slot in boxes + cylinders) { slot.hide(); runtime.loader.destroyAsset(slot.asset) }
-        scene.removeEntities(figure.entities)
-        runtime.loader.destroyAsset(figure)
+        for (mesh in meshes) mesh.destroy()
         scene.removeEntity(sun)
         engine.destroyEntity(sun)
         engine.destroyIndirectLight(indirect)
@@ -340,5 +428,11 @@ class FigureRenderer(private val runtime: Figure3DRuntime, private val textureVi
         EntityManager.get().destroy(cameraEntity)
         EntityManager.get().destroy(sun)
         engine.flushAndWait()
+    }
+
+    private companion object {
+        const val BUFFER_RING = 4
+        const val STABLE_FRAMES = 45
+        const val STABLE_NANOS = 3_000_000_000L
     }
 }

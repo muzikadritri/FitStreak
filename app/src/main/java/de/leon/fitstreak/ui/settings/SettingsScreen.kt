@@ -146,7 +146,12 @@ fun SettingsScreen(vm: AppViewModel, onBack: () -> Unit) {
                 SwitchRow("Ton", "Signal am Ende von Pause und Countdown", s.soundEnabled) { on -> vm.updateSettings { it.copy(soundEnabled = on) } }
                 SwitchRow("Vibration", "Haptisches Feedback beim Abhaken und Timer-Ende", s.hapticsEnabled) { on -> vm.updateSettings { it.copy(hapticsEnabled = on) } }
                 if (platform.figure3dSupported()) {
-                    SwitchRow("3D-Figur", "Übungen als drehbares 3D-Modell zeigen. Aus = gezeichnete Figur", s.figure3d) { on ->
+                    val hint = if (platform.figure3dFailed() && s.figure3d) {
+                        "Die 3D-Ansicht ist auf diesem Gerät zuletzt abgestürzt und pausiert. Aus- und wieder einschalten, um es erneut zu versuchen"
+                    } else {
+                        "Übungen als drehbares 3D-Modell zeigen. Aus = gezeichnete Figur"
+                    }
+                    SwitchRow("3D-Figur", hint, s.figure3d) { on ->
                         if (on) platform.figure3dRetry()
                         vm.updateSettings { it.copy(figure3d = on) }
                     }
